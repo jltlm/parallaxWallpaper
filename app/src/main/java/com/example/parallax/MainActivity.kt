@@ -2,6 +2,7 @@ package com.example.parallax
 
 import android.app.Activity
 import android.app.WallpaperManager
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -23,30 +24,32 @@ class MainActivity : AppCompatActivity() {
 
     private var pickedPhoto : Uri? = null
     private var pickedBitMap : Bitmap? = null
-    private val wm = WallpaperManager.getInstance(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        wm.getWallpaperInfo()
-
         binding.btnSelectImage.setOnClickListener(View.OnClickListener { view ->
             pickPhoto(view)
         })
         binding.btnSetWallpaper.setOnClickListener(View.OnClickListener { view ->
-            wm.setBitmap(pickedBitMap)
+
+            var intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER)
+            intent.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, ComponentName(this, WallpaperService::class.java))
+            startActivity(intent)
+//            val wm = WallpaperManager.getInstance(this)
+//            wm.setBitmap(pickedBitMap)
         })
     }
 
     fun pickPhoto (view: View) {
-        Log.i("mytag", "called pickPhoto")
+        Log.i("__mainTag", "called pickPhoto")
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
-            Log.i("mytag", "requesting perms")
+            Log.i("__mainTag", "requesting perms")
             ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 1)
         } else {
-            Log.i("mytag", "already have perms")
+            Log.i("__mainTag", "already have perms")
             val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
             startActivityForResult(galleryIntent, 2)
         }
@@ -57,12 +60,12 @@ class MainActivity : AppCompatActivity() {
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        Log.i("mytag", "called onRequestPermissionsResult")
+        Log.i("__mainTag", "called onRequestPermissionsResult")
         if (requestCode == 1) {
-            Log.i("mytag", "request granted?${grantResults[0]}")
-            Log.i("mytag", "${ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.READ_MEDIA_IMAGES)}")
+            Log.i("__mainTag", "request granted?${grantResults[0]}")
+            Log.i("__mainTag", "${ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.READ_MEDIA_IMAGES)}")
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.i("mytag", "request granted x2??")
+                Log.i("__mainTag", "request granted x2??")
                 val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
                 startActivityForResult(galleryIntent, 2)
             }
@@ -76,7 +79,7 @@ class MainActivity : AppCompatActivity() {
     )
     )
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        Log.i("mytag", "called onActivityResult")
+        Log.i("__mainTag", "called onActivityResult")
         if (requestCode == 2 && resultCode == Activity.RESULT_OK && data != null) {
             pickedPhoto = data.data;
             if (pickedPhoto != null) {
