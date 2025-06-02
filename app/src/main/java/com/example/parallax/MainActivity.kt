@@ -38,8 +38,10 @@ class MainActivity : AppCompatActivity() {
             var intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER)
             intent.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, ComponentName(this, WallpaperService::class.java))
             startActivity(intent)
+
 //            val wm = WallpaperManager.getInstance(this)
 //            wm.setBitmap(pickedBitMap)
+//            wm.setWallpaperOffsetSteps(.5f, 0f)
         })
     }
 
