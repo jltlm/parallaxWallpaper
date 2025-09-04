@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "com.example.parallax"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -47,6 +47,9 @@ dependencies {
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.filament.android)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.datastore.core.android)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

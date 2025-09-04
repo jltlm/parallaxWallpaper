@@ -7,3 +7,4 @@
     android:settingsActivity="com.example.parallax.MainActivity"/>
 <!--    android:thumbnail="@drawable/icon"-->
 <!--    android:description="@string/wallpaper_description"-->
+

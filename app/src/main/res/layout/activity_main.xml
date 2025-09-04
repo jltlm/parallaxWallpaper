@@ -10,35 +10,85 @@
     tools:context=".MainActivity">
 
     <ImageView
-        android:id="@+id/imageView1"
-        android:layout_width="223dp"
-        android:layout_height="215dp"
-        android:layout_marginTop="116dp"
+        android:id="@+id/ivSampleBot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:contentDescription="@string/chosen_image"
-        android:onClick="pickPhoto"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@android:drawable/alert_dark_frame" />
+        />
+
+    <ImageView
+        android:id="@+id/ivSampleMid"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/chosen_image"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
+    <ImageView
+        android:id="@+id/ivSampleTop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/chosen_image"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/btnSelectImage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="208dp"
+        android:layout_marginBottom="16dp"
+        android:background="@color/design_default_color_primary"
         android:text="@string/select_image"
+        app:icon="@android:drawable/ic_menu_gallery"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/imageView1" />
+        app:layout_constraintHorizontal_bias="0.092"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/btnSetWallpaper"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
         android:text="Set Wallpaper"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageButton
+        android:id="@+id/ivSmallTop"
+        android:layout_width="64dp"
+        android:layout_height="97dp"
+        android:layout_marginStart="164dp"
+        android:layout_marginTop="28dp"
+        android:contentDescription="@string/select_layer_top"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/empty_iv" />
+
+    <ImageButton
+        android:id="@+id/ivSmallMid"
+        android:layout_width="64dp"
+        android:layout_height="97dp"
+        android:layout_marginStart="92dp"
+        android:layout_marginTop="28dp"
+        android:contentDescription="@string/select_layer_mid"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/empty_iv" />
+
+    <ImageButton
+        android:id="@+id/ivSmallBot"
+        android:layout_width="64dp"
+        android:layout_height="97dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="28dp"
+        android:contentDescription="@string/select_layer_bot"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/empty_iv" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
