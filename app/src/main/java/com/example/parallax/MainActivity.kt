@@ -14,6 +14,8 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
 import android.view.View
+import android.widget.ImageButton
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -30,6 +32,39 @@ import kotlinx.coroutines.launch
 
 private val CONF_NAME = "settings"
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = CONF_NAME)
+
+class Layer() {
+
+    lateinit var uri: Uri
+    lateinit var bitmap: Bitmap
+    var offset: Float = 0f
+
+}
+
+class LayerManager(level: Int, layer: Layer) {
+
+    val level : Int = level
+    val layer: Layer = layer
+
+    lateinit var imageViewSmall: ImageButton
+    lateinit var imageViewSample: ImageView
+
+    fun getUri(): Uri { return this.layer.uri }
+//    fun getBitmap(): Bitmap { return this.layer.bitmap }
+//    fun getOffset(): Float { return this.layer.offset }
+
+    fun setDetails (uri: Uri, bitmap: Bitmap, offset: Float) {
+        this.layer.uri = uri
+        this.layer.bitmap = bitmap
+        this.layer.offset = offset
+    }
+
+    fun updateUIElementImages() {
+        imageViewSmall.setImageBitmap(this.layer.bitmap)
+        imageViewSample.setImageBitmap(this.layer.bitmap)
+    }
+
+}
 
 object PreferenceManager {
     private val L1_KEY = stringPreferencesKey("layer1_key")
@@ -72,46 +107,88 @@ object PreferenceManager {
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private var pickedLayer = 1
-
-    private var pickedPhoto1 : Uri? = null
-    private var pickedBitMap1 : Bitmap? = null
-    private var pickedPhoto2 : Uri? = null
-    private var pickedBitMap2 : Bitmap? = null
-    private var pickedPhoto3 : Uri? = null
-    private var pickedBitMap3 : Bitmap? = null
-
+    private var pickedLayer : Int = 1
+    private val layerManagers : MutableMap<Int, LayerManager> = mutableMapOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.ivSmallBot.setOnClickListener(View.OnClickListener { view ->
+        for (i in 1..3) {
+            val layerManager = LayerManager(i, Layer())
+
+            when (i) {
+                1 -> {
+                    layerManager.imageViewSmall = binding.ivSmallBot
+                    layerManager.imageViewSample = binding.ivSampleBot
+                }
+                2 -> {
+                    layerManager.imageViewSmall = binding.ivSmallMid
+                    layerManager.imageViewSample = binding.ivSampleMid
+                }
+                3 -> {
+                    layerManager.imageViewSmall = binding.ivSmallTop
+                    layerManager.imageViewSample = binding.ivSampleTop
+                }
+            }
+
+            layerManagers[i] = layerManager
+        }
+        binding.ivSmallBot.setOnClickListener {
             pickedLayer = 1
-        })
-        binding.ivSmallMid.setOnClickListener(View.OnClickListener { view ->
+        }
+        binding.ivSmallMid.setOnClickListener{
             pickedLayer = 2
-        })
-        binding.ivSmallTop.setOnClickListener(View.OnClickListener { view ->
+        }
+        binding.ivSmallTop.setOnClickListener {
             pickedLayer = 3
-        })
-        binding.btnSelectImage.setOnClickListener(View.OnClickListener { view ->
+        }
+        binding.btnSelectImage.setOnClickListener { view ->
             pickPhoto(view)
-        })
-        binding.btnSetWallpaper.setOnClickListener(View.OnClickListener { view ->
-
-            var intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER)
-            intent.putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, ComponentName(this, WallpaperService::class.java))
+        }
+        binding.btnSetWallpaper.setOnClickListener { view ->
+            val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER)
+            intent.putExtra(
+                WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
+                ComponentName(this, WallpaperService::class.java)
+            )
             startActivity(intent)
-
-//            val wm = WallpaperManager.getInstance(this)
-//            wm.setBitmap(pickedBitMap)
-//            wm.setWallpaperOffsetSteps(.5f, 0f)
-        })
+        }
     }
 
-    fun pickPhoto (view: View) {
+    /**
+     * save all settings
+     */
+    private fun saveAll() {
+        lifecycleScope.launch {
+            PreferenceManager.saveL1(applicationContext, layerManagers[1]?.getUri().toString())
+            PreferenceManager.saveL2(applicationContext, layerManagers[2]?.getUri().toString())
+            PreferenceManager.saveL3(applicationContext, layerManagers[3]?.getUri().toString())
+        }
+    }
+
+    /**
+     * save settings for a particular layer
+     * @param layer the layer to save the details of
+     */
+    private fun save(layer: Int) {
+        lifecycleScope.launch {
+            when (layer) {
+                1 -> {
+                    PreferenceManager.saveL1(applicationContext, layerManagers[1]?.getUri().toString())
+                }
+                2 -> {
+                    PreferenceManager.saveL2(applicationContext, layerManagers[2]?.getUri().toString())
+                }
+                3 -> {
+                    PreferenceManager.saveL3(applicationContext, layerManagers[3]?.getUri().toString())
+                }
+            }
+        }
+    }
+
+        private fun pickPhoto (view: View) {
         Log.i("__walpMain", "called pickPhoto")
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
             Log.i("__walpMain", "requesting perms")
@@ -141,63 +218,35 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
+    /**
+     * returns a bitmap from uri
+     */
+    private fun bitmapFromUri(uri: Uri) : Bitmap {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val source = ImageDecoder.createSource(this.contentResolver, uri)
+            return ImageDecoder.decodeBitmap(source)
+        } else {
+            return MediaStore.Images.Media.getBitmap(this.contentResolver, uri)
+        }
+    }
+
     @Deprecated("Deprecated in Java", ReplaceWith(
         "super.onActivityResult(requestCode, resultCode, data)",
-        "androidx.appcompat.app.AppCompatActivity"
-    )
-    )
+        "androidx.appcompat.app.AppCompatActivity"))
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         Log.i("__walpMain", "called onActivityResult")
         if (requestCode == 2 && resultCode == Activity.RESULT_OK && data != null) {
-            pickedPhoto1 = data.data;
             Log.i("__walpMain", data.data.toString())
             if (data.data != null) {
-                if (Build.VERSION.SDK_INT >= 28) {
-                    val source = ImageDecoder.createSource(this.contentResolver, data.data!!)
-//                    val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
-//                    this.contentResolver.takePersistableUriPermission(data.data!!, flag)
 
-                    if (pickedLayer == 1) {
-                        pickedPhoto1 = data.data;
-                        pickedBitMap1 = ImageDecoder.decodeBitmap(source)
+                val layer: LayerManager = layerManagers[pickedLayer]!!
+                layer.setDetails(data.data!!, bitmapFromUri(data.data!!), 0f)
+                layer.updateUIElementImages()
 
-                        binding.ivSampleBot.setImageBitmap(pickedBitMap1)
-                        binding.ivSmallBot.setImageBitmap(pickedBitMap1)
-
-                        lifecycleScope.launch {
-                            PreferenceManager.saveL1(applicationContext, data.data.toString())
-                        }
-                    } else if (pickedLayer == 2) {
-                        pickedPhoto2 = data.data;
-                        pickedBitMap2 = ImageDecoder.decodeBitmap(source)
-
-                        binding.ivSampleMid.setImageBitmap(pickedBitMap2)
-                        binding.ivSmallMid.setImageBitmap(pickedBitMap2)
-
-                        lifecycleScope.launch {
-                            PreferenceManager.saveL2(applicationContext, data.data.toString())
-                        }
-                    } else if (pickedLayer == 3) {
-                        pickedPhoto3 = data.data;
-                        pickedBitMap3 = ImageDecoder.decodeBitmap(source)
-                        
-                        binding.ivSampleTop.setImageBitmap(pickedBitMap3)
-                        binding.ivSmallTop.setImageBitmap(pickedBitMap3)
-
-                        lifecycleScope.launch {
-                            PreferenceManager.saveL3(applicationContext, data.data.toString())
-                        }
-                    }
-                }
-                else {
-                    pickedBitMap1 = MediaStore.Images.Media.getBitmap(this.contentResolver, pickedPhoto1)
-                    binding.ivSampleBot.setImageBitmap(pickedBitMap1)
-                }
+                save(pickedLayer)
             }
         }
         super.onActivityResult(requestCode, resultCode, data)
     }
-
-
 
 }
