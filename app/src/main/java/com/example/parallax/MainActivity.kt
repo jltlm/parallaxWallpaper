@@ -21,14 +21,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.lifecycleScope
 import com.example.parallax.databinding.ActivityMainBinding
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+
 
 private val CONF_NAME = "settings"
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = CONF_NAME)
@@ -64,44 +61,6 @@ class LayerManager(level: Int, layer: Layer) {
         imageViewSample.setImageBitmap(this.layer.bitmap)
     }
 
-}
-
-object PreferenceManager {
-    private val L1_KEY = stringPreferencesKey("layer1_key")
-    private val L2_KEY = stringPreferencesKey("layer2_key")
-    private val L3_KEY = stringPreferencesKey("layer3_key")
-
-    suspend fun saveL1(context: Context, value: String) {
-        context.dataStore.edit { preferences ->
-            preferences[L1_KEY] = value
-        }
-    }
-    suspend fun saveL2(context: Context, value: String) {
-        context.dataStore.edit { preferences ->
-            preferences[L2_KEY] = value
-        }
-    }
-    suspend fun saveL3(context: Context, value: String) {
-        context.dataStore.edit { preferences ->
-            preferences[L3_KEY] = value
-        }
-    }
-
-    fun getL1(context: Context): Flow<String> {
-        return context.dataStore.data.map { preferences ->
-            preferences[L1_KEY].toString()
-        }
-    }
-    fun getL2(context: Context): Flow<String> {
-        return context.dataStore.data.map { preferences ->
-            preferences[L2_KEY].toString()
-        }
-    }
-    fun getL3(context: Context): Flow<String> {
-        return context.dataStore.data.map { preferences ->
-            preferences[L3_KEY].toString()
-        }
-    }
 }
 
 class MainActivity : AppCompatActivity() {
