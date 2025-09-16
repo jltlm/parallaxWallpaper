@@ -14,7 +14,7 @@ object PreferenceManager {
     private val L3_URI_KEY = stringPreferencesKey("layer3_uri_key")
     private val PAGES = intPreferencesKey("pages_key")
     private val L1_VELOCITY_KEY = doublePreferencesKey("layer1_velocity_key")
-    private val L2_VELOCITY_KEY = doublePreferencesKey("layer3_velocity_key")
+    private val L2_VELOCITY_KEY = doublePreferencesKey("layer2_velocity_key")
     private val L3_VELOCITY_KEY = doublePreferencesKey("layer3_velocity_key")
 
     // URI =================================================
@@ -80,17 +80,17 @@ object PreferenceManager {
     }
     fun getL1Velocity(context: Context): Flow<Double> {
         return context.dataStore.data.map { preferences ->
-            preferences[L1_VELOCITY_KEY]?.toDouble() ?: 0.0
+            preferences[L1_VELOCITY_KEY]?.toDouble() ?: 0.1
         }
     }
     fun getL2Velocity(context: Context): Flow<Double> {
         return context.dataStore.data.map { preferences ->
-            preferences[L2_VELOCITY_KEY]?.toDouble() ?: 0.0
+            preferences[L2_VELOCITY_KEY]?.toDouble() ?: 0.2
         }
     }
     fun getL3Velocity(context: Context): Flow<Double> {
         return context.dataStore.data.map { preferences ->
-            preferences[L3_VELOCITY_KEY]?.toDouble() ?: 0.0
+            preferences[L3_VELOCITY_KEY]?.toDouble() ?: 0.3
         }
     }
 

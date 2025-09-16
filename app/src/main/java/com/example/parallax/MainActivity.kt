@@ -14,8 +14,10 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -34,7 +36,7 @@ class Layer() {
 
     lateinit var uri: Uri
     lateinit var bitmap: Bitmap
-    var offset: Float = 0f
+    var offset: Double = 0.0
 
 }
 
@@ -50,10 +52,17 @@ class LayerManager(level: Int, layer: Layer) {
 //    fun getBitmap(): Bitmap { return this.layer.bitmap }
 //    fun getOffset(): Float { return this.layer.offset }
 
-    fun setDetails (uri: Uri, bitmap: Bitmap, offset: Float) {
+    fun setUriBitmap (uri: Uri, bitmap: Bitmap) {
         this.layer.uri = uri
         this.layer.bitmap = bitmap
+    }
+
+    fun setOffset(offset: Double) {
         this.layer.offset = offset
+    }
+
+    fun getOffset(): Double {
+        return this.layer.offset;
     }
 
     fun updateUIElementImages() {
@@ -96,17 +105,31 @@ class MainActivity : AppCompatActivity() {
         }
         binding.ivSmallBot.setOnClickListener {
             pickedLayer = 1
+            binding.inputOffset.setText(layerManagers[pickedLayer]?.getOffset().toString())
         }
         binding.ivSmallMid.setOnClickListener{
             pickedLayer = 2
+            binding.inputOffset.setText(layerManagers[pickedLayer]?.getOffset().toString())
         }
         binding.ivSmallTop.setOnClickListener {
             pickedLayer = 3
+            binding.inputOffset.setText(layerManagers[pickedLayer]?.getOffset().toString())
         }
         binding.btnSelectImage.setOnClickListener { view ->
             pickPhoto(view)
         }
+        binding.inputOffset.setOnEditorActionListener(TextView.OnEditorActionListener { v, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val offset = v.text.toString().toDouble()
+                layerManagers[pickedLayer]?.setOffset(offset)
+                Log.i("__walpMain", "offset set: $pickedLayer $offset")
+                return@OnEditorActionListener true
+            }
+            false
+        })
+
         binding.btnSetWallpaper.setOnClickListener { view ->
+            saveAll()
             val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER)
             intent.putExtra(
                 WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
@@ -120,11 +143,18 @@ class MainActivity : AppCompatActivity() {
      * save all settings
      */
     private fun saveAll() {
+//        lifecycleScope.launch {
+//            PreferenceManager.saveL1(applicationContext, layerManagers[1]?.getUri().toString())
+//            PreferenceManager.saveL2(applicationContext, layerManagers[2]?.getUri().toString())
+//            PreferenceManager.saveL3(applicationContext, layerManagers[3]?.getUri().toString())
+//        }
         lifecycleScope.launch {
-            PreferenceManager.saveL1(applicationContext, layerManagers[1]?.getUri().toString())
-            PreferenceManager.saveL2(applicationContext, layerManagers[2]?.getUri().toString())
-            PreferenceManager.saveL3(applicationContext, layerManagers[3]?.getUri().toString())
+            Log.i("__walpMain", "l1: " + layerManagers[1]!!.getOffset() + " l2: " + layerManagers[2]!!.getOffset() + " l3: " + layerManagers[3]!!.getOffset())
+            PreferenceManager.saveL1Velocity(applicationContext, layerManagers[1]!!.getOffset())
+            PreferenceManager.saveL2Velocity(applicationContext, layerManagers[2]!!.getOffset())
+            PreferenceManager.saveL3Velocity(applicationContext, layerManagers[3]!!.getOffset())
         }
+
     }
 
     /**
@@ -199,7 +229,8 @@ class MainActivity : AppCompatActivity() {
             if (data.data != null) {
 
                 val layer: LayerManager = layerManagers[pickedLayer]!!
-                layer.setDetails(data.data!!, bitmapFromUri(data.data!!), 0f)
+                layer.setUriBitmap(data.data!!, bitmapFromUri(data.data!!))
+                layerManagers[pickedLayer]?.setOffset(0.0) // if new image picked, set to 0
                 layer.updateUIElementImages()
 
                 save(pickedLayer)

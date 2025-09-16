@@ -2,7 +2,6 @@ package com.example.parallax
 
 // must do all layers or else can't take empty from PreferenceManager
 
-import android.app.WallpaperManager
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -16,10 +15,8 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.service.wallpaper.WallpaperService
-import android.util.DisplayMetrics
 import android.util.Log
 import android.view.SurfaceHolder
-import android.widget.Toast
 import androidx.core.graphics.scale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +34,9 @@ class WallpaperService : WallpaperService() {
         private var bitmap1: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.flower)
         private var bitmap2: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.flower)
         private var bitmap3: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.flower)
+        private var velocity1: Double = 0.0
+        private var velocity2: Double = 0.0
+        private var velocity3: Double = 0.0
 
 
         /**
@@ -66,7 +66,7 @@ class WallpaperService : WallpaperService() {
             super.onCreate(surfaceHolder)
             Log.i("__walpService", "engine onCreate")
 
-            var canvasHeight = 0f;
+            var canvasHeight = 0f
             try {
                 val metrics = applicationContext.resources.displayMetrics
                 canvasHeight = metrics.heightPixels.toFloat()
@@ -97,6 +97,24 @@ class WallpaperService : WallpaperService() {
                     bitmap3 = uriStringToBitmap(uriString)
                     bitmap3 = bitmap3.scale((canvasHeight / bitmap3.height * bitmap3.width).toInt(), canvasHeight.toInt()
                     )
+                }
+            }
+            scope.launch {
+                PreferenceManager.getL1Velocity(applicationContext).collect{ vel ->
+                    Log.i("__walpService", "l1 velocity: $vel")
+                    velocity1 = vel
+                }
+            }
+            scope.launch {
+                PreferenceManager.getL2Velocity(applicationContext).collect{ vel ->
+                    Log.i("__walpService", "l2 velocity: $vel")
+                    velocity2 = vel
+                }
+            }
+            scope.launch {
+                PreferenceManager.getL3Velocity(applicationContext).collect{ vel ->
+                    Log.i("__walpService", "l3 velocity: $vel")
+                    velocity3 = vel
                 }
             }
 
@@ -134,9 +152,9 @@ class WallpaperService : WallpaperService() {
 
                     // bottommost to topmost (1-3) layers
                     // lower velocity is slower. negative velocity is backwards.
-                    val pos1 = getPos(.1)
-                    val pos2 = getPos(.1)
-                    val pos3 = getPos(.3)
+                    val pos1 = getPos(velocity1)
+                    val pos2 = getPos(velocity2)
+                    val pos3 = getPos(velocity3)
 
                     val src1Rect = Rect(pos1, 0, pos1 + bitmap1.height * canvas.width/canvas.height, bitmap1.height)
                     val src2Rect = Rect(pos2, 0, pos2 + bitmap2.getScaledHeight(canvas) * canvas.width/canvas.height, bitmap2.getScaledHeight(canvas))
