@@ -6,32 +6,49 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#242424"
-    android:fitsSystemWindows="true"
+    android:fitsSystemWindows="false"
     tools:context=".MainActivity">
 
-    <ImageView
-        android:id="@+id/ivSampleBot"
+    <HorizontalScrollView
+        android:id="@+id/hsvSample"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:contentDescription="@string/chosen_image"
-        tools:layout_editor_absoluteY="611dp" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:fitsSystemWindows="false">
 
-    <ImageView
-        android:id="@+id/ivSampleMid"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:contentDescription="@string/chosen_image"
-        tools:layout_editor_absoluteY="731dp" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/ivSampleTop"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:contentDescription="@string/chosen_image"
-        tools:layout_editor_absoluteX="-16dp"
-        tools:layout_editor_absoluteY="0dp" />
+            <ImageView
+                android:id="@+id/ivSampleBot"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="start"
+                android:contentDescription="@string/chosen_image"
+                android:scaleType="fitStart" />
+
+            <ImageView
+                android:id="@+id/ivSampleMid"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="start"
+                android:contentDescription="@string/chosen_image"
+                android:scaleType="fitStart" />
+
+            <ImageView
+                android:id="@+id/ivSampleTop"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="start"
+                android:contentDescription="@string/chosen_image"
+                android:scaleType="fitStart" />
+        </FrameLayout>
+    </HorizontalScrollView>
 
     <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="97dp"
         android:layout_height="365dp"
         android:orientation="vertical"
@@ -90,47 +107,80 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="123dp"
-        android:layout_height="359dp"
-        android:layout_marginTop="28dp"
-        android:background="?attr/colorPrimary"
-        android:minHeight="?attr/actionBarSize"
-        android:theme="?attr/actionBarTheme"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
-    <EditText
-        android:id="@+id/inputOffset"
-        android:singleLine="true"
-        android:imeOptions="actionDone"
-        android:inputType="numberDecimal"
-        android:layout_width="69dp"
-        android:layout_height="51dp"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="80dp"
-        android:ems="10"
-        android:text="0"
-        android:textColor="@color/white"
-        android:textSize="24sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="@+id/toolbar"
-        app:layout_constraintTop_toTopOf="@+id/toolbar" />
-
-    <EditText
-        android:id="@+id/inputPageCount"
-        android:layout_width="98dp"
-        android:layout_height="70dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="372dp"
-        android:ems="10"
-        android:inputType="number"
-        android:text="2"
-        android:textColor="@color/white"
-        android:textSize="20sp"
+    <SeekBar
+        android:id="@+id/sbPage"
+        style="@style/Widget.AppCompat.SeekBar.Discrete"
+        android:layout_width="264dp"
+        android:layout_height="26dp"
+        android:layout_marginStart="84dp"
+        android:layout_marginBottom="88dp"
+        android:max="10"
+        android:progress="3"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/linearLayout3"
+        android:layout_width="328dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="500dp"
+        android:orientation="vertical"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvSpeedLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="speed: "
+                android:textColor="@color/white" />
+
+            <TextView
+                android:id="@+id/tvSpeedValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/white" />
+
+            <SeekBar
+                android:id="@+id/sbSpeed"
+                android:layout_width="276dp"
+                android:layout_height="21dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvOffsetLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="offset: "
+                android:textColor="@color/white" />
+
+            <TextView
+                android:id="@+id/tvOffsetValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/white" />
+
+            <SeekBar
+                android:id="@+id/sbOffset"
+                android:layout_width="match_parent"
+                android:layout_height="21dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

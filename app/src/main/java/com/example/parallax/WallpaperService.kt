@@ -1,127 +1,66 @@
 package com.example.parallax
 
-// must do all layers or else can't take empty from PreferenceManager
-
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ImageDecoder
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.Rect
-import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
+import android.graphics.drawable.AnimatedImageDrawable
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.service.wallpaper.WallpaperService
 import android.util.Log
 import android.view.SurfaceHolder
-import androidx.core.graphics.scale
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+
 
 class WallpaperService : WallpaperService() {
 
-    inner class WallpaperEngine : WallpaperService.Engine() {
-        private val paint = Paint()
-        // https://stackoverflow.com/questions/63405673/how-to-call-suspend-function-from-service-android
-        private val job = SupervisorJob()
-        private val scope = CoroutineScope(Dispatchers.IO + job)
-//        private val layers = MutableList(3);
-        private var bitmap1: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.flower)
-        private var bitmap2: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.flower)
-        private var bitmap3: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.flower)
-        private var velocity1: Double = 0.0
-        private var velocity2: Double = 0.0
-        private var velocity3: Double = 0.0
+    inner class Layer (img: Any, velocity : Int = 1, offset: Int = 0) {
 
+        var img: Any = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.flower))
+        var velocity: Double = 0.0
+        var offset: Double = 0.0
 
-        /**
-         * checks to see if
-         * @param uriString
-         */
-        private fun uriStringToBitmap(uriString: String): Bitmap  {
-            val uri: Uri = Uri.parse(uriString)
-
-            // tri uri, see if it's valid. if not, don't draw layer (print issue)
-            try {
-                contentResolver.openInputStream(uri)?.close()
-            } catch (e: Exception) {
-                Log.w("__walpService", "issue with getting image $e")
-                return BitmapFactory.decodeResource(resources, R.drawable.transparent)
-            }
-            Log.d("__walpService", "valid uri: $uriString")
-
-            if (Build.VERSION.SDK_INT >= 28) {
-                return ImageDecoder.decodeBitmap(ImageDecoder.createSource(applicationContext.contentResolver, uri)).copy(Bitmap.Config.ARGB_8888, false)
-            } else {
-                return MediaStore.Images.Media.getBitmap(applicationContext.contentResolver, uri).copy(Bitmap.Config.ARGB_8888, false)
-            }
+        init {
+            this.img = img
+            this.velocity = 1.0 * velocity / 10
+            this.offset = 1.0 * offset
         }
+    }
+
+    inner class WallpaperEngine : Engine() {
+        private val paint = Paint()
+        private var nyan: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.chalk_animation))
+        private var goose: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.goose))
+        private var flower: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resources, R.drawable.flower))
+        private var nyan2: AnimationFrameHolder = AnimationFrameHolder(resources.openRawResource(R.raw.chalk_animation).use { it.readBytes() }, applicationContext)
+// maybe add option to mirror image / gif on negative offset
+        private var layers: MutableList<Layer> = MutableList(0) { Layer(goose) }
 
         override fun onCreate(surfaceHolder: SurfaceHolder?) {
             super.onCreate(surfaceHolder)
             Log.i("__walpService", "engine onCreate")
 
-            var canvasHeight = 0f
-            try {
-                val metrics = applicationContext.resources.displayMetrics
-                canvasHeight = metrics.heightPixels.toFloat()
-                Log.d("__walpService", "canvas pixel width: " + metrics.widthPixels + " height: " + metrics.heightPixels)
-            } catch (e: Exception) {
-                Log.e("__walpService", "error accessing display height: $e")
-            }
+//            layers.add(Layer(nyan, 1, 0))
+            layers.add(Layer(goose, 12, 100))
+            layers.add(Layer(nyan2, 3, 600))
+//            layers.add(Layer(flower, -16, -500))
 
-            scope.launch {
-                PreferenceManager.getL1(applicationContext).collect { uriString ->
-                    Log.i("__walpService", "l1 uri: $uriString")
-                    bitmap1 = uriStringToBitmap(uriString)
-                    bitmap1 = bitmap1.scale((canvasHeight / bitmap1.height * bitmap1.width).toInt(), canvasHeight.toInt()
-                    )
-                }
-            }
-            scope.launch {
-                PreferenceManager.getL2(applicationContext).collect{ uriString ->
-                    Log.i("__walpService", "l2 uri: $uriString")
-                    bitmap2 = uriStringToBitmap(uriString)
-                    bitmap2 = bitmap2.scale((canvasHeight / bitmap2.height * bitmap2.width).toInt(), canvasHeight.toInt()
-                    )
-                }
-            }
-            scope.launch {
-                PreferenceManager.getL3(applicationContext).collect{ uriString ->
-                    Log.i("__walpService", "l3 uri: $uriString")
-                    bitmap3 = uriStringToBitmap(uriString)
-                    bitmap3 = bitmap3.scale((canvasHeight / bitmap3.height * bitmap3.width).toInt(), canvasHeight.toInt()
-                    )
-                }
-            }
-            scope.launch {
-                PreferenceManager.getL1Velocity(applicationContext).collect{ vel ->
-                    Log.i("__walpService", "l1 velocity: $vel")
-                    velocity1 = vel
-                }
-            }
-            scope.launch {
-                PreferenceManager.getL2Velocity(applicationContext).collect{ vel ->
-                    Log.i("__walpService", "l2 velocity: $vel")
-                    velocity2 = vel
-                }
-            }
-            scope.launch {
-                PreferenceManager.getL3Velocity(applicationContext).collect{ vel ->
-                    Log.i("__walpService", "l3 velocity: $vel")
-                    velocity3 = vel
-                }
-            }
+//            val bytes = resources.openRawResource(R.raw.nyan_cat).use { it.readBytes() }
 
-//            val source : ImageDecoder.Source = ImageDecoder.createSource(resources, R.drawable.gif)
-//            val ani = ImageDecoder.decodeDrawable(source) // this is for the gifs
+
+            for (i in 0 until layers.size) {
+                if (layers[i].img is AnimatedImageDrawable) {
+                    (layers[i].img as AnimatedImageDrawable).start()
+                }
+
+            }
 
         }
+
 
         override fun onSurfaceCreated(holder: SurfaceHolder) {
             paint.color = Color.WHITE
@@ -132,51 +71,61 @@ class WallpaperService : WallpaperService() {
             draw()
         }
 
-        private fun draw(offset: Int = 0) {
+        private fun draw(offset: Float = 0f) {
             val holder = surfaceHolder
             var canvas: Canvas? = null
             try {
-                canvas = holder.lockCanvas()
-
-                // linear movement (diff equation for something else)
-                fun getPos(velocity: Double): Int {
-                    return (-offset * velocity).toInt()
-                }
-
+                canvas = holder.lockHardwareCanvas()
                 if (canvas != null) {
 
                     canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
 
-                    val destRect = Rect(0, 0, canvas.width, canvas.height)
-                    // width of a srcRect should be c.w/c.h * bm.h for scaling to full image height and cropping width to screen
+                    val canvasRatio = canvas.width.toDouble()/canvas.height
 
-                    // bottommost to topmost (1-3) layers
-                    // lower velocity is slower. negative velocity is backwards.
-                    val pos1 = getPos(velocity1)
-                    val pos2 = getPos(velocity2)
-                    val pos3 = getPos(velocity3)
+                    for (i in 0 until layers.size) {
+                        val layer = layers[i]
+                        val pos = - ((offset * canvas.width) * layer.velocity - layer.offset).toInt() // canvas width is the multiplier
 
-                    val src1Rect = Rect(pos1, 0, pos1 + bitmap1.height * canvas.width/canvas.height, bitmap1.height)
-                    val src2Rect = Rect(pos2, 0, pos2 + bitmap2.getScaledHeight(canvas) * canvas.width/canvas.height, bitmap2.getScaledHeight(canvas))
-                    val src3Rect = Rect(pos3, 0, pos3 + bitmap3.getScaledHeight(canvas) * canvas.width/canvas.height, bitmap3.getScaledHeight(canvas))
+                        when (layer.img) {
+                            is AnimatedImageDrawable -> {
+                                val layerImg = (layer.img as AnimatedImageDrawable)
+                                layerImg.setBounds(pos, 0, pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(), canvas.height)
+                                layerImg.draw(canvas)
+                            }
 
-                    canvas.drawBitmap(bitmap1, src1Rect, destRect, paint)
-                    canvas.drawBitmap(bitmap2, src2Rect, destRect, paint)
-                    canvas.drawBitmap(bitmap3, src3Rect, destRect, paint)
+                            is BitmapDrawable -> {
+                                val layerImg = (layer.img as BitmapDrawable)
+                                layerImg.setBounds(pos, 0, pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(), canvas.height)
+                                layerImg.draw(canvas)
+                            }
+
+                            is AnimationFrameHolder -> {
+                                val layerImg = (layer.img as AnimationFrameHolder)
+                                val bm = layerImg.getNextFrame()
+                                val destRect = Rect(0, 0, canvas.width, canvas.height)
+                                val srcRect = Rect(pos * bm.height / canvas.height, 0, pos * bm.height / canvas.height + (bm.height * canvasRatio).toInt(), bm.height)
+                                canvas.drawBitmap(bm, srcRect, destRect, paint)
+                            }
+
+                            is Bitmap -> {
+                                val bm = (layer.img as Bitmap)
+                                val destRect = Rect(0, 0, canvas.width, canvas.height)
+                                val srcRect = Rect(pos * bm.height / canvas.height, 0, pos * bm.height / canvas.height + (bm.height * canvasRatio).toInt(), bm.height)
+                                canvas.drawBitmap(bm, srcRect, destRect, paint)
+
+                            }
+                        }
+                    }
+
                 }
 
             } catch (e: Exception) {
-                Log.e("__walpService", "onsurfacecreated issue $e")
+                Log.e("__walpService", "on surface creation $e")
             } finally {
                 if (canvas != null) {
                     holder.unlockCanvasAndPost(canvas)
                 }
             }
-        }
-
-        override fun onDestroy() {
-            super.onDestroy()
-            job.cancel()
         }
 
         override fun onOffsetsChanged(
@@ -187,8 +136,7 @@ class WallpaperService : WallpaperService() {
             xPixelOffset: Int,
             yPixelOffset: Int
         ) {
-            draw(xPixelOffset)
-
+            draw(xOffset)
             super.onOffsetsChanged(
                 xOffset,
                 yOffset,
@@ -197,6 +145,24 @@ class WallpaperService : WallpaperService() {
                 xPixelOffset,
                 yPixelOffset
             )
+        }
+
+        override fun onVisibilityChanged(visible: Boolean) {
+            super.onVisibilityChanged(visible)
+            Log.e("__walpService", "visible: $visible")
+            if (visible) {
+                for (i in 0 until layers.size) {
+                    if (layers[i].img is AnimatedImageDrawable) {
+                        (layers[i].img as AnimatedImageDrawable).start()
+                    }
+                }
+            } else {
+                for (i in 0 until layers.size) {
+                    if (layers[i].img is AnimatedImageDrawable) {
+                        (layers[i].img as AnimatedImageDrawable).stop()
+                    }
+                }
+            }
         }
     }
 
