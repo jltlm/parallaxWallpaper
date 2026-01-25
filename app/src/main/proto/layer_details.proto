@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option java_package = "com.example.parallax.datastore";
+option java_multiple_files = true;
+
+message LayerDO {
+    int32 level = 1;
+    string uri = 2;
+    int32 velocity = 3;
+    int32 offset = 4;
+}
+
+message LayerListDO {
+    repeated LayerDO layers = 1;
+}

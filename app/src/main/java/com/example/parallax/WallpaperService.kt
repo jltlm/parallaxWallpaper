@@ -11,9 +11,17 @@ import android.graphics.Rect
 import android.graphics.drawable.AnimatedImageDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.service.wallpaper.WallpaperService
 import android.util.Log
 import android.view.SurfaceHolder
+import com.example.parallax.datastore.LayerDO
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import java.io.FileNotFoundException
+import java.io.InputStream
 
 
 class WallpaperService : WallpaperService() {
@@ -32,6 +40,9 @@ class WallpaperService : WallpaperService() {
     }
 
     inner class WallpaperEngine : Engine() {
+        private val job = SupervisorJob()
+        private val scope = CoroutineScope(Dispatchers.IO + job)
+
         private val paint = Paint()
         private var nyan: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.chalk_animation))
         private var goose: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.goose))
@@ -45,12 +56,34 @@ class WallpaperService : WallpaperService() {
             Log.i("__walpService", "engine onCreate")
 
 //            layers.add(Layer(nyan, 1, 0))
-            layers.add(Layer(goose, 12, 100))
-            layers.add(Layer(nyan2, 3, 600))
+//            layers.add(Layer(goose, 12, 100))
+//            layers.add(Layer(nyan2, 3, 600))
 //            layers.add(Layer(flower, -16, -500))
-
 //            val bytes = resources.openRawResource(R.raw.nyan_cat).use { it.readBytes() }
 
+            layers.clear() // first- remove existing layers
+            scope.launch {
+                // adding layers in from datastore
+                LayerRepository.getLayerFlow(applicationContext).collect{ layerDOs: List<LayerDO> ->
+                    for (layerDO in layerDOs) {
+                        val uri = Uri.parse(layerDO.uri)
+                        Log.i("__walpService", "uri: $uri")
+                        var inputStream: InputStream? = null
+                        try {
+                            inputStream = applicationContext.contentResolver.openInputStream(uri)
+                            val drawable = Drawable.createFromStream(inputStream, layerDO.uri)
+                            if (drawable == null) {
+                                Log.i("__walpService", "engine onCreate")
+                            } else {
+                                layers.add(Layer(drawable, layerDO.velocity, layerDO.offset))
+                            }
+                        } catch (e: FileNotFoundException) { e.printStackTrace()
+                        } finally {
+                            inputStream?.close()
+                        }
+                    }
+                }
+            }
 
             for (i in 0 until layers.size) {
                 if (layers[i].img is AnimatedImageDrawable) {

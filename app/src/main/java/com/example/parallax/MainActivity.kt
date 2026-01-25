@@ -1,73 +1,101 @@
 package com.example.parallax
 
-import android.app.Activity
 import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.ImageDecoder
+import android.content.res.Resources
+import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
 import android.view.View
-import android.view.inputmethod.EditorInfo
 import android.widget.ImageButton
 import android.widget.ImageView
-import android.widget.TextView
+import android.widget.SeekBar
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.dataStore
 import androidx.lifecycle.lifecycleScope
 import com.example.parallax.databinding.ActivityMainBinding
+import com.example.parallax.datastore.LayerDO
+import com.example.parallax.datastore.LayerListDO
 import kotlinx.coroutines.launch
+import java.io.FileNotFoundException
+import java.io.InputStream
 
 
-private val CONF_NAME = "settings"
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = CONF_NAME)
+private const val DATA_STORE_FILE_NAME = "layers.pb"
 
-class Layer() {
+val Context.layerDataStore: DataStore<LayerListDO> by dataStore(
+    fileName = DATA_STORE_FILE_NAME,
+    serializer = LayerListDOSerializer
+)
 
-    lateinit var uri: Uri
-    lateinit var bitmap: Bitmap
+class Layer(uri: String = "", velocity: Int = 0, offset: Int = 0, drawable: Drawable? = null) {
+
+    var uri: Uri? = null
+    var drawable: Drawable? = null
+    var velocity: Double = 0.0
     var offset: Double = 0.0
+
+    init {
+        this.uri = if (uri == "") null else Uri.parse(uri)
+        this.drawable = drawable
+        this.velocity = velocity * 1.0
+        this.offset = offset * 1.0
+    }
 
 }
 
-class LayerManager(level: Int, layer: Layer) {
+class LayerManager(
+    val level: Int,
+    var layer: Layer,
+    var imageViewSmall: ImageButton,
+    var imageViewSample: ImageView
+) {
 
-    val level : Int = level
-    val layer: Layer = layer
-
-    lateinit var imageViewSmall: ImageButton
-    lateinit var imageViewSample: ImageView
-
-    fun getUri(): Uri { return this.layer.uri }
-//    fun getBitmap(): Bitmap { return this.layer.bitmap }
-//    fun getOffset(): Float { return this.layer.offset }
-
-    fun setUriBitmap (uri: Uri, bitmap: Bitmap) {
+    fun setUriDrawable (uri: Uri, drawable: Drawable?) {
         this.layer.uri = uri
-        this.layer.bitmap = bitmap
+        this.layer.drawable = drawable
     }
 
-    fun setOffset(offset: Double) {
-        this.layer.offset = offset
+    fun clearLayer() {
+        this.layer.velocity = 0.0
+        this.layer.offset = 0.0
+        this.layer.uri = null
+        this.layer.drawable = null
     }
 
-    fun getOffset(): Double {
-        return this.layer.offset;
+    fun loadLayer(l: Layer) {
+        this.layer = l
     }
 
     fun updateUIElementImages() {
-        imageViewSmall.setImageBitmap(this.layer.bitmap)
-        imageViewSample.setImageBitmap(this.layer.bitmap)
+        if (this.layer.drawable == null) {
+            imageViewSample.setImageBitmap(null)
+            imageViewSmall.setImageBitmap(null)
+            return
+        }
+
+        val dr = this.layer.drawable!!
+
+        imageViewSample.setImageDrawable(dr)
+        imageViewSmall.setImageDrawable(dr)
+//        // this is to make the UI background long, like the actual background
+//        val bmWidth = dr.minimumWidth
+//        val bmHeight = dr.minimumWidth.toDouble() // funny sheet cuz of kotlin's integer division T_T
+//        imageViewSample.setImageBitmap(dr.scale((
+//            bmWidth/bmHeight * Resources.getSystem().displayMetrics.heightPixels).toInt(),
+//            Resources.getSystem().displayMetrics.heightPixels))
+//        imageViewSmall.setImageBitmap(dr.scale((
+//                bmWidth/bmHeight * imageViewSmall.height).toInt(), imageViewSmall.height))
     }
 
 }
@@ -77,58 +105,110 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var pickedLayer : Int = 1
     private val layerManagers : MutableMap<Int, LayerManager> = mutableMapOf()
+    private var pageNum = 3
+    private var maxBackgroundWidthPx = pageNum * 1000
+    private val maxSpeed = 50
+    private val screenWidth = Resources.getSystem().displayMetrics.widthPixels
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.i("__walpMain", "MainActivity onCreate")
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        for (i in 1..3) {
-            val layerManager = LayerManager(i, Layer())
+        // gonna want a loop for this later or something
+        layerManagers[1] = LayerManager(1, Layer(), binding.ivSmallBot, binding.ivSampleBot)
+        layerManagers[2] = LayerManager(2, Layer(), binding.ivSmallMid, binding.ivSampleMid)
+        layerManagers[3] = LayerManager(3, Layer(), binding.ivSmallTop, binding.ivSampleTop)
 
-            when (i) {
-                1 -> {
-                    layerManager.imageViewSmall = binding.ivSmallBot
-                    layerManager.imageViewSample = binding.ivSampleBot
-                }
-                2 -> {
-                    layerManager.imageViewSmall = binding.ivSmallMid
-                    layerManager.imageViewSample = binding.ivSampleMid
-                }
-                3 -> {
-                    layerManager.imageViewSmall = binding.ivSmallTop
-                    layerManager.imageViewSample = binding.ivSampleTop
-                }
-            }
-
-            layerManagers[i] = layerManager
+        binding.btnClearAllLayers.setOnClickListener {
+            clearAll()
         }
+
         binding.ivSmallBot.setOnClickListener {
             pickedLayer = 1
-            binding.inputOffset.setText(layerManagers[pickedLayer]?.getOffset().toString())
+            binding.tvSpeedValue.text = "${layerManagers[pickedLayer]!!.layer.velocity}"
+            binding.sbSpeed.progress = (layerManagers[pickedLayer]!!.layer.velocity * 10).toInt()
+            binding.sbOffset.progress = (layerManagers[pickedLayer]!!.layer.offset).toInt()
         }
         binding.ivSmallMid.setOnClickListener{
             pickedLayer = 2
-            binding.inputOffset.setText(layerManagers[pickedLayer]?.getOffset().toString())
+            binding.tvSpeedValue.text = "${layerManagers[pickedLayer]!!.layer.velocity}"
+            binding.sbSpeed.progress = (layerManagers[pickedLayer]!!.layer.velocity * 10).toInt()
+            binding.sbOffset.progress = (layerManagers[pickedLayer]!!.layer.offset).toInt()
         }
         binding.ivSmallTop.setOnClickListener {
             pickedLayer = 3
-            binding.inputOffset.setText(layerManagers[pickedLayer]?.getOffset().toString())
+            binding.tvSpeedValue.text = "${layerManagers[pickedLayer]!!.layer.velocity}"
+            binding.sbSpeed.progress = (layerManagers[pickedLayer]!!.layer.velocity * 10).toInt()
+            binding.sbOffset.progress = (layerManagers[pickedLayer]!!.layer.offset).toInt()
         }
-        binding.btnSelectImage.setOnClickListener { view ->
-            pickPhoto(view)
-        }
-        binding.inputOffset.setOnEditorActionListener(TextView.OnEditorActionListener { v, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                val offset = v.text.toString().toDouble()
-                layerManagers[pickedLayer]?.setOffset(offset)
-                Log.i("__walpMain", "offset set: $pickedLayer $offset")
-                return@OnEditorActionListener true
+
+        // guh
+        val imgPicker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            for (uri in uris) {
+                contentResolver.takePersistableUriPermission(uri, flags)
+                selectImage(uri)
             }
-            false
+        }
+
+        binding.btnSelectImage.setOnClickListener { _ ->
+            getImgPermissions()
+            imgPicker.launch(arrayOf("image/*"))
+        }
+
+        binding.sbSpeed.visibility = View.GONE
+        binding.tvSpeedValue.setOnClickListener {
+            binding.sbSpeed.visibility = View.VISIBLE
+        }
+        binding.tvSpeedLabel.setOnClickListener {
+            binding.sbSpeed.visibility = View.VISIBLE
+        }
+        binding.sbSpeed.max = maxSpeed
+        binding.sbSpeed.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                binding.sbSpeed.visibility = View.GONE
+            }
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                binding.tvSpeedValue.text = "${progress/1.0}"
+                val speed = progress.toDouble()
+                layerManagers[pickedLayer]!!.layer.velocity = speed/1.0
+            }
         })
 
-        binding.btnSetWallpaper.setOnClickListener { view ->
+        binding.sbOffset.visibility = View.GONE
+        binding.tvOffsetValue.setOnClickListener {
+            binding.sbOffset.visibility = View.VISIBLE
+        }
+        binding.tvOffsetLabel.setOnClickListener {
+            binding.sbOffset.visibility = View.VISIBLE
+        }
+        binding.sbOffset.max = screenWidth / 20
+        binding.sbOffset.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                binding.sbOffset.visibility = View.GONE
+            }
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                binding.tvOffsetValue.text = "$progress"
+                layerManagers[pickedLayer]!!.layer.offset = progress.toDouble() * -20 // this is my constant multiplier
+            }
+        })
+
+//        binding.inputOffset.setOnEditorActionListener(TextView.OnEditorActionListener { v, actionId, _ ->
+//            if (actionId == EditorInfo.IME_ACTION_DONE) {
+//                val offset = v.text.toString().toDouble()
+//                layerManagers[pickedLayer]?.setVelocity(offset)
+//                Log.i("__walpMain", "offset set: $pickedLayer $offset")
+//                return@OnEditorActionListener true
+//            }
+//            false
+//        })
+
+        binding.btnSetWallpaper.setOnClickListener { _ ->
             saveAll()
             val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER)
             intent.putExtra(
@@ -137,106 +217,148 @@ class MainActivity : AppCompatActivity() {
             )
             startActivity(intent)
         }
+
+        binding.sbPage.max = pageNum
+        maxBackgroundWidthPx = pageNum * screenWidth
+        binding.ivSampleBot.minimumWidth = maxBackgroundWidthPx + screenWidth
+        binding.hsvSample.isHorizontalScrollBarEnabled = false
+        binding.hsvSample.setOnScrollChangeListener { _, scrollX, _, _, _ ->
+            if (binding.sbPage.max == 0 || maxBackgroundWidthPx == 0) { return@setOnScrollChangeListener }
+
+            val scrollPercent = scrollX * 1f / maxBackgroundWidthPx
+            val scrollMultiplier = screenWidth * scrollPercent
+
+            for ((_,v) in layerManagers) { // this is where the parallax scroll for the app UI happens
+                v.imageViewSample.translationX = (-scrollMultiplier * v.layer.velocity).toFloat() + scrollX + (-v.layer.offset).toFloat()
+            }
+
+            if (scrollX > maxBackgroundWidthPx ) {
+                binding.hsvSample.scrollX = maxBackgroundWidthPx
+                binding.sbPage.progress = binding.sbPage.max
+            } else {
+                binding.sbPage.progress = ((scrollX * 1f / maxBackgroundWidthPx) / (1f / binding.sbPage.max)).toInt()
+            }
+        }
+
+        binding.sbPage.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    binding.hsvSample.scrollX = progress * maxBackgroundWidthPx / binding.sbPage.max
+                }
+                Log.i("__walpMain", "current scroll: ${binding.hsvSample.scrollX}")
+            }
+        })
+
+        loadAll()
+
+
+    }
+
+    /**
+     * init from settings
+     */
+    private fun loadAll() {
+        lifecycleScope.launch {
+            LayerRepository.getLayerFlow(applicationContext).collect { layerDOs: List<LayerDO> ->
+                Log.d("__walpMain", "loading ${layerDOs.size} layers from repo")
+                for (layerDO in layerDOs) {
+                    val uri = Uri.parse(layerDO.uri)
+
+                    // create new layer
+                    val l = Layer(layerDO.uri, layerDO.velocity, layerDO.offset)
+
+                    // add layer to layerManagers
+                    val lm = layerManagers[layerDO.level]
+                    lm?.loadLayer(l)
+
+                    // updating UI
+                    lm?.setUriDrawable(uri, drawableFromUri(uri))
+                    lm?.updateUIElementImages()
+                }
+            }
+        }
     }
 
     /**
      * save all settings
      */
     private fun saveAll() {
-//        lifecycleScope.launch {
-//            PreferenceManager.saveL1(applicationContext, layerManagers[1]?.getUri().toString())
-//            PreferenceManager.saveL2(applicationContext, layerManagers[2]?.getUri().toString())
-//            PreferenceManager.saveL3(applicationContext, layerManagers[3]?.getUri().toString())
-//        }
         lifecycleScope.launch {
-            Log.i("__walpMain", "l1: " + layerManagers[1]!!.getOffset() + " l2: " + layerManagers[2]!!.getOffset() + " l3: " + layerManagers[3]!!.getOffset())
-            PreferenceManager.saveL1Velocity(applicationContext, layerManagers[1]!!.getOffset())
-            PreferenceManager.saveL2Velocity(applicationContext, layerManagers[2]!!.getOffset())
-            PreferenceManager.saveL3Velocity(applicationContext, layerManagers[3]!!.getOffset())
-        }
+            Log.i("__walpMain", "l1: " + layerManagers[1]!!.layer.velocity + " l2: " + layerManagers[2]!!.layer.velocity + " l3: " + layerManagers[3]!!.layer.velocity)
 
-    }
+            LayerRepository.clearLayers(applicationContext)
 
-    /**
-     * save settings for a particular layer
-     * @param layer the layer to save the details of
-     */
-    private fun save(layer: Int) {
-        lifecycleScope.launch {
-            when (layer) {
-                1 -> {
-                    PreferenceManager.saveL1(applicationContext, layerManagers[1]?.getUri().toString())
-                }
-                2 -> {
-                    PreferenceManager.saveL2(applicationContext, layerManagers[2]?.getUri().toString())
-                }
-                3 -> {
-                    PreferenceManager.saveL3(applicationContext, layerManagers[3]?.getUri().toString())
-                }
+            for ((_, lm) in layerManagers) {
+                val l = lm.layer
+                if (l.uri == null) { continue }
+
+                LayerRepository.addLayer(
+                    applicationContext,
+                    lm.level,
+                    l.uri.toString(),
+                    l.velocity.toInt(),
+                    l.offset.toInt()
+                )
             }
         }
     }
 
-        private fun pickPhoto (view: View) {
-        Log.i("__walpMain", "called pickPhoto")
+    private fun clearAll() {
+        lifecycleScope.launch {
+            Log.i("__walpMain", "clearing layers")
+            LayerRepository.clearLayers(applicationContext)
+        }
+        for ((_, lm) in layerManagers) {
+            val l = lm.layer
+            if (l.uri == null) { continue }
+            lm.clearLayer()
+            lm.updateUIElementImages()
+        }
+    }
+
+    private fun getImgPermissions () {
+        Log.i("__walpMain", "getting permissions...")
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
             Log.i("__walpMain", "requesting perms")
             ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 1)
-        } else {
-            Log.i("__walpMain", "already have perms")
-            val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            startActivityForResult(galleryIntent, 2)
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        Log.i("__walpMain", "called onRequestPermissionsResult")
-        if (requestCode == 1) {
-            Log.i("__walpMain", "request granted?${grantResults[0]}")
-            Log.i("__walpMain", "${ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.READ_MEDIA_IMAGES)}")
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.i("__walpMain", "request granted x2??")
-                val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-                startActivityForResult(galleryIntent, 2)
-            }
-        }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    private fun selectImage(uri: Uri) {
+        Log.i("__walpMain", uri.toString())
+
+        val layer: LayerManager = layerManagers[pickedLayer]!!
+        layer.setUriDrawable(uri, drawableFromUri(uri))
+        layerManagers[pickedLayer]!!.layer.velocity = 0.0 // if new image picked, set to 0
+        layer.updateUIElementImages()
     }
 
     /**
      * returns a bitmap from uri
      */
-    private fun bitmapFromUri(uri: Uri) : Bitmap {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val source = ImageDecoder.createSource(this.contentResolver, uri)
-            return ImageDecoder.decodeBitmap(source)
-        } else {
-            return MediaStore.Images.Media.getBitmap(this.contentResolver, uri)
-        }
+//    private fun bitmapFromUri(uri: Uri) : Bitmap {
+//        val source = ImageDecoder.createSource(this.contentResolver, uri)
+//        return ImageDecoder.decodeBitmap(source)
+//    }
+
+    private fun drawableFromUri(uri: Uri) : Drawable? {
+        var drawable: Drawable? = null
+        var inputStream: InputStream? = null
+        try {
+            inputStream = applicationContext.contentResolver.openInputStream(uri)
+            drawable = Drawable.createFromStream(inputStream, uri.toString())
+        } catch (e: FileNotFoundException) {
+            e.printStackTrace()
+            Log.e("__walpMain", "can't find drawable $uri")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e("__walpMain", "convert from uri exception $uri")
+        } finally { inputStream?.close() }
+
+        return drawable
     }
 
-    @Deprecated("Deprecated in Java", ReplaceWith(
-        "super.onActivityResult(requestCode, resultCode, data)",
-        "androidx.appcompat.app.AppCompatActivity"))
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        Log.i("__walpMain", "called onActivityResult")
-        if (requestCode == 2 && resultCode == Activity.RESULT_OK && data != null) {
-            Log.i("__walpMain", data.data.toString())
-            if (data.data != null) {
-
-                val layer: LayerManager = layerManagers[pickedLayer]!!
-                layer.setUriBitmap(data.data!!, bitmapFromUri(data.data!!))
-                layerManagers[pickedLayer]?.setOffset(0.0) // if new image picked, set to 0
-                layer.updateUIElementImages()
-
-                save(pickedLayer)
-            }
-        }
-        super.onActivityResult(requestCode, resultCode, data)
-    }
 
 }
