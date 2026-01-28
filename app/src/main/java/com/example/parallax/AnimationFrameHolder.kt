@@ -8,7 +8,7 @@ import com.bumptech.glide.gifdecoder.GifHeaderParser
 import com.bumptech.glide.gifdecoder.StandardGifDecoder
 import com.bumptech.glide.load.resource.gif.GifBitmapProvider
 
-class AnimationFrameHolder(bytes: ByteArray, context: Context, speed : Int = 20) {
+class AnimationFrameHolder(context: Context, bytes: ByteArray, speed : Int = 20) {
     private val frames = mutableListOf<Bitmap>()
     private var frameIndex = 0
     private val delays = mutableListOf<Int>()
@@ -20,7 +20,7 @@ class AnimationFrameHolder(bytes: ByteArray, context: Context, speed : Int = 20)
         parser.setData(bytes)
 
         val header = parser.parseHeader()
-        if (header.numFrames <= 0) { error("Not a valid GIF") }
+        if (header.numFrames <= 0) { throw IllegalArgumentException("Not a valid GIF") }
 
         val decoder = StandardGifDecoder(GifBitmapProvider(Glide.get(context).bitmapPool))
         decoder.setData(header, bytes)

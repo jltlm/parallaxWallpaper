@@ -1,15 +1,9 @@
 package com.example.parallax
 
 import android.content.Context
-import android.graphics.drawable.Drawable
-import android.net.Uri
-import android.util.Log
 import com.example.parallax.datastore.LayerDO
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import java.io.FileNotFoundException
-import java.io.InputStream
 
 
 object LayerRepository {
@@ -34,6 +28,7 @@ object LayerRepository {
         context: Context,
         level: Int,
         uri: String,
+        imageType: Int,
         velocity: Int,
         offset: Int
     ) {
@@ -43,6 +38,7 @@ object LayerRepository {
                     LayerDO.newBuilder()
                         .setLevel(level)
                         .setUri(uri)
+                        .setImageType(imageType)
                         .setVelocity(velocity)
                         .setOffset(offset)
                         .build()

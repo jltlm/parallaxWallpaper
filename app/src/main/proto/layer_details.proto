@@ -6,8 +6,9 @@ option java_multiple_files = true;
 message LayerDO {
     int32 level = 1;
     string uri = 2;
-    int32 velocity = 3;
-    int32 offset = 4;
+    int32 imageType = 3;
+    int32 velocity = 4;
+    int32 offset = 5;
 }
 
 message LayerListDO {

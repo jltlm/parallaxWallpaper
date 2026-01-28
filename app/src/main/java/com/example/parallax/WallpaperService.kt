@@ -10,6 +10,7 @@ import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.graphics.drawable.AnimatedImageDrawable
 import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.service.wallpaper.WallpaperService
@@ -44,10 +45,11 @@ class WallpaperService : WallpaperService() {
         private val scope = CoroutineScope(Dispatchers.IO + job)
 
         private val paint = Paint()
-        private var nyan: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.chalk_animation))
-        private var goose: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.goose))
-        private var flower: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resources, R.drawable.flower))
-        private var nyan2: AnimationFrameHolder = AnimationFrameHolder(resources.openRawResource(R.raw.chalk_animation).use { it.readBytes() }, applicationContext)
+//        private var nyan: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.chalk_animation))
+//        private var goose: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.goose))
+        private var goose: Drawable = ColorDrawable(Color.TRANSPARENT)
+//        private var flower: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resources, R.drawable.flower))
+//        private var nyan2: AnimationFrameHolder = AnimationFrameHolder(applicationContext, resources.openRawResource(R.raw.chalk_animation).use { it.readBytes() })
 // maybe add option to mirror image / gif on negative offset
         private var layers: MutableList<Layer> = MutableList(0) { Layer(goose) }
 
@@ -61,39 +63,61 @@ class WallpaperService : WallpaperService() {
 //            layers.add(Layer(flower, -16, -500))
 //            val bytes = resources.openRawResource(R.raw.nyan_cat).use { it.readBytes() }
 
-            layers.clear() // first- remove existing layers
             scope.launch {
                 // adding layers in from datastore
                 LayerRepository.getLayerFlow(applicationContext).collect{ layerDOs: List<LayerDO> ->
+                    layers.clear() // first- remove existing layers
+                    Log.d("__walpService", "num layers: ${layerDOs.size}")
                     for (layerDO in layerDOs) {
-                        val uri = Uri.parse(layerDO.uri)
-                        Log.i("__walpService", "uri: $uri")
-                        var inputStream: InputStream? = null
-                        try {
-                            inputStream = applicationContext.contentResolver.openInputStream(uri)
-                            val drawable = Drawable.createFromStream(inputStream, layerDO.uri)
-                            if (drawable == null) {
-                                Log.i("__walpService", "engine onCreate")
-                            } else {
-                                layers.add(Layer(drawable, layerDO.velocity, layerDO.offset))
-                            }
-                        } catch (e: FileNotFoundException) { e.printStackTrace()
-                        } finally {
-                            inputStream?.close()
+                        addLayer(layerDO)
+                        if (layers[layers.size-1].img is AnimatedImageDrawable) {
+                            (layers[layers.size-1].img as AnimatedImageDrawable).start()
                         }
                     }
                 }
             }
-
-            for (i in 0 until layers.size) {
-                if (layers[i].img is AnimatedImageDrawable) {
-                    (layers[i].img as AnimatedImageDrawable).start()
-                }
-
-            }
+            Log.d("__walpService", "num layers after adding: ${layers.size}")
 
         }
 
+        private fun addLayer(layerDO: LayerDO) {
+            val uri = Uri.parse(layerDO.uri)
+            Log.i("__walpService", "uri: $uri")
+            var inputStream: InputStream? = null
+            try {
+                inputStream = applicationContext.contentResolver.openInputStream(uri)
+
+                var drawable: Any?
+                when (ImageType.fromInt(layerDO.imageType)) {
+                    ImageType.BITMAP -> {
+                        drawable = ImageDecoder.decodeBitmap(ImageDecoder.createSource(applicationContext.contentResolver, uri))
+                    }
+                    ImageType.CONTINUOUS_GIF -> {
+                        drawable = Drawable.createFromStream(inputStream, layerDO.uri)
+                    }
+                    ImageType.INTERACTIVE_GIF -> {
+                        val bytes = applicationContext.contentResolver
+                            .openInputStream(uri)!!
+                            .use { it.readBytes() }
+                        drawable = try {
+                            AnimationFrameHolder(applicationContext, bytes)
+                        } catch (e: Exception) {
+                            ImageDecoder.decodeBitmap(ImageDecoder.createSource(applicationContext.contentResolver, uri))
+                            Log.e("__walpService", "not a valid interactive gif - draw as bitmap")
+                        }
+                    }
+                }
+
+                if (drawable == null) {
+                    Log.e("__walpService", "can't draw image")
+                } else {
+                    layers.add(Layer(drawable, layerDO.velocity, layerDO.offset))
+                }
+            } catch (e: FileNotFoundException) { e.printStackTrace()
+            } finally {
+                inputStream?.close()
+            }
+        }
 
         override fun onSurfaceCreated(holder: SurfaceHolder) {
             paint.color = Color.WHITE
@@ -182,14 +206,18 @@ class WallpaperService : WallpaperService() {
 
         override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
-            Log.e("__walpService", "visible: $visible")
+            Log.i("__walpService", "visible: $visible")
             if (visible) {
+
+
                 for (i in 0 until layers.size) {
                     if (layers[i].img is AnimatedImageDrawable) {
                         (layers[i].img as AnimatedImageDrawable).start()
                     }
                 }
             } else {
+//                scope.cancel()
+
                 for (i in 0 until layers.size) {
                     if (layers[i].img is AnimatedImageDrawable) {
                         (layers[i].img as AnimatedImageDrawable).stop()
@@ -199,13 +227,15 @@ class WallpaperService : WallpaperService() {
         }
     }
 
+    private var engine: Engine = WallpaperEngine()
 
     override fun onCreateEngine(): Engine {
-        return WallpaperEngine()
+        Log.e("__walpService", "we're making an engine??!?!?!")
+        engine = WallpaperEngine()
+        return engine
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        // If we get killed, after returning from here, restart
         return START_STICKY
     }
 

@@ -9,7 +9,6 @@ import android.content.res.Resources
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import android.widget.ImageButton
@@ -38,15 +37,17 @@ val Context.layerDataStore: DataStore<LayerListDO> by dataStore(
     serializer = LayerListDOSerializer
 )
 
-class Layer(uri: String = "", velocity: Int = 0, offset: Int = 0, drawable: Drawable? = null) {
+class Layer(uri: String = "", velocity: Int = 0, offset: Int = 0, drawable: Drawable? = null, imageType: ImageType = ImageType.BITMAP) {
 
     var uri: Uri? = null
     var drawable: Drawable? = null
     var velocity: Double = 0.0
     var offset: Double = 0.0
+    var imageType: ImageType = ImageType.BITMAP
 
     init {
         this.uri = if (uri == "") null else Uri.parse(uri)
+        this.imageType = imageType
         this.drawable = drawable
         this.velocity = velocity * 1.0
         this.offset = offset * 1.0
@@ -64,6 +65,10 @@ class LayerManager(
     fun setUriDrawable (uri: Uri, drawable: Drawable?) {
         this.layer.uri = uri
         this.layer.drawable = drawable
+    }
+
+    fun setImageType (imageType: ImageType) {
+        this.layer.imageType = imageType
     }
 
     fun clearLayer() {
@@ -265,9 +270,14 @@ class MainActivity : AppCompatActivity() {
                 Log.d("__walpMain", "loading ${layerDOs.size} layers from repo")
                 for (layerDO in layerDOs) {
                     val uri = Uri.parse(layerDO.uri)
+                    Log.d("__walpMain", "loading ${layerDO.imageType} ")
 
                     // create new layer
-                    val l = Layer(layerDO.uri, layerDO.velocity, layerDO.offset)
+                    val l = Layer(
+                        uri = layerDO.uri,
+                        velocity = layerDO.velocity,
+                        offset = layerDO.offset,
+                        imageType = ImageType.fromInt(layerDO.imageType))
 
                     // add layer to layerManagers
                     val lm = layerManagers[layerDO.level]
@@ -298,6 +308,7 @@ class MainActivity : AppCompatActivity() {
                     applicationContext,
                     lm.level,
                     l.uri.toString(),
+                    l.imageType.value,
                     l.velocity.toInt(),
                     l.offset.toInt()
                 )
