@@ -66,8 +66,8 @@ class WallpaperService : WallpaperService() {
             scope.launch {
                 // adding layers in from datastore
                 LayerRepository.getLayerFlow(applicationContext).collect{ layerDOs: List<LayerDO> ->
-                    layers.clear() // first- remove existing layers
                     Log.d("__walpService", "num layers: ${layerDOs.size}")
+                    layers.clear() // first- remove existing layers
                     for (layerDO in layerDOs) {
                         addLayer(layerDO)
                         if (layers[layers.size-1].img is AnimatedImageDrawable) {
@@ -76,7 +76,7 @@ class WallpaperService : WallpaperService() {
                     }
                 }
             }
-            Log.d("__walpService", "num layers after adding: ${layers.size}")
+            // code here shall not come to pass
 
         }
 
@@ -87,7 +87,7 @@ class WallpaperService : WallpaperService() {
             try {
                 inputStream = applicationContext.contentResolver.openInputStream(uri)
 
-                var drawable: Any?
+                val drawable: Any?
                 when (ImageType.fromInt(layerDO.imageType)) {
                     ImageType.BITMAP -> {
                         drawable = ImageDecoder.decodeBitmap(ImageDecoder.createSource(applicationContext.contentResolver, uri))
@@ -227,12 +227,8 @@ class WallpaperService : WallpaperService() {
         }
     }
 
-    private var engine: Engine = WallpaperEngine()
-
     override fun onCreateEngine(): Engine {
-        Log.e("__walpService", "we're making an engine??!?!?!")
-        engine = WallpaperEngine()
-        return engine
+        return WallpaperEngine()
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
