@@ -9,7 +9,6 @@ import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.graphics.drawable.AnimatedImageDrawable
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -25,20 +24,26 @@ import java.io.FileNotFoundException
 import java.io.InputStream
 
 
-class WallpaperService : WallpaperService() {
+//sealed class ServiceImg {
+//    class StaticBitmap(val bitmap: Bitmap) : ServiceImg()
+//    class AnimatedGif(val drawable: AnimatedImageDrawable) : ServiceImg()
+//    class InteractiveGif(val animationFrameHolder: AnimationFrameHolder) : ServiceImg()
+//}
 
-    inner class Layer (img: Any, velocity : Int = 1, offset: Int = 0) {
+class ServiceLayer (img: Any, velocity : Int = 1, offset: Int = 0) {
 
-        var img: Any = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.flower))
-        var velocity: Double = 0.0
-        var offset: Double = 0.0
+    var img: Any = ColorDrawable(Color.TRANSPARENT)
+    var velocity: Double = 0.0
+    var offset: Double = 0.0
 
-        init {
-            this.img = img
-            this.velocity = 1.0 * velocity / 10
-            this.offset = 1.0 * offset
-        }
+    init {
+        this.img = img
+        this.velocity = 1.0 * velocity / 10
+        this.offset = 1.0 * offset
     }
+}
+
+class WallpaperService : WallpaperService() {
 
     inner class WallpaperEngine : Engine() {
         private val job = SupervisorJob()
@@ -51,16 +56,28 @@ class WallpaperService : WallpaperService() {
 //        private var flower: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resources, R.drawable.flower))
 //        private var nyan2: AnimationFrameHolder = AnimationFrameHolder(applicationContext, resources.openRawResource(R.raw.chalk_animation).use { it.readBytes() })
 // maybe add option to mirror image / gif on negative offset
-        private var layers: MutableList<Layer> = MutableList(0) { Layer(goose) }
+        private var layers: MutableList<ServiceLayer> = MutableList(0) { ServiceLayer(goose) }
+
+        override fun onDestroy() {
+            job.cancel()
+            for (l in layers) {
+                if (l.img is AnimatedImageDrawable) {
+                    (l.img as AnimatedImageDrawable).stop()
+                }
+            }
+
+            Log.e("__walpService", "bye bye")
+            super.onDestroy()
+        }
 
         override fun onCreate(surfaceHolder: SurfaceHolder?) {
             super.onCreate(surfaceHolder)
             Log.i("__walpService", "engine onCreate")
 
-//            layers.add(Layer(nyan, 1, 0))
-//            layers.add(Layer(goose, 12, 100))
-//            layers.add(Layer(nyan2, 3, 600))
-//            layers.add(Layer(flower, -16, -500))
+//            layers.add(ServiceLayer(nyan, 1, 0))
+//            layers.add(ServiceLayer(goose, 12, 100))
+//            layers.add(ServiceLayer(nyan2, 3, 600))
+//            layers.add(ServiceLayer(flower, -16, -500))
 //            val bytes = resources.openRawResource(R.raw.nyan_cat).use { it.readBytes() }
 
             scope.launch {
@@ -111,7 +128,7 @@ class WallpaperService : WallpaperService() {
                 if (drawable == null) {
                     Log.e("__walpService", "can't draw image")
                 } else {
-                    layers.add(Layer(drawable, layerDO.velocity, layerDO.offset))
+                    layers.add(ServiceLayer(drawable, layerDO.velocity, layerDO.offset))
                 }
             } catch (e: FileNotFoundException) { e.printStackTrace()
             } finally {
@@ -146,12 +163,6 @@ class WallpaperService : WallpaperService() {
                         when (layer.img) {
                             is AnimatedImageDrawable -> {
                                 val layerImg = (layer.img as AnimatedImageDrawable)
-                                layerImg.setBounds(pos, 0, pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(), canvas.height)
-                                layerImg.draw(canvas)
-                            }
-
-                            is BitmapDrawable -> {
-                                val layerImg = (layer.img as BitmapDrawable)
                                 layerImg.setBounds(pos, 0, pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(), canvas.height)
                                 layerImg.draw(canvas)
                             }

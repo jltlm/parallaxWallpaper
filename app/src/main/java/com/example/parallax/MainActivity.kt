@@ -75,6 +75,7 @@ class LayerManager(
         this.layer.velocity = 0.0
         this.layer.offset = 0.0
         this.layer.uri = null
+        this.layer.imageType = ImageType.BITMAP
         this.layer.drawable = null
     }
 
