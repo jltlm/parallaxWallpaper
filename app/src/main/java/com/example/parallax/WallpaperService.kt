@@ -24,20 +24,25 @@ import java.io.FileNotFoundException
 import java.io.InputStream
 
 
-//sealed class ServiceImg {
-//    class StaticBitmap(val bitmap: Bitmap) : ServiceImg()
-//    class AnimatedGif(val drawable: AnimatedImageDrawable) : ServiceImg()
-//    class InteractiveGif(val animationFrameHolder: AnimationFrameHolder) : ServiceImg()
-//}
+sealed class ServiceImg {
+    abstract val img: Any
 
-class ServiceLayer (img: Any, velocity : Int = 1, offset: Int = 0) {
+    class Empty(override val img: Drawable = ColorDrawable(Color.TRANSPARENT)) : ServiceImg()
+    class StaticBitmap(override val img: Bitmap) : ServiceImg()
+    class AnimatedGif(override val img: AnimatedImageDrawable) : ServiceImg()
+    class InteractiveGif(override val img: AnimationFrameHolder) : ServiceImg()
+}
 
-    var img: Any = ColorDrawable(Color.TRANSPARENT)
+class ServiceLayer (img: ServiceImg, uri: String = "", velocity : Int = 1, offset: Int = 0) {
+
+    var img: ServiceImg = ServiceImg.Empty()
+    var uri: String = ""
     var velocity: Double = 0.0
     var offset: Double = 0.0
 
     init {
         this.img = img
+        this.uri = uri
         this.velocity = 1.0 * velocity / 10
         this.offset = 1.0 * offset
     }
@@ -48,22 +53,19 @@ class WallpaperService : WallpaperService() {
     inner class WallpaperEngine : Engine() {
         private val job = SupervisorJob()
         private val scope = CoroutineScope(Dispatchers.IO + job)
-
+        private var layers: MutableList<ServiceLayer> = MutableList(0) { ServiceLayer(ServiceImg.StaticBitmap(flower)) }
         private val paint = Paint()
+
 //        private var nyan: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.chalk_animation))
 //        private var goose: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.goose))
-        private var goose: Drawable = ColorDrawable(Color.TRANSPARENT)
-//        private var flower: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resources, R.drawable.flower))
-//        private var nyan2: AnimationFrameHolder = AnimationFrameHolder(applicationContext, resources.openRawResource(R.raw.chalk_animation).use { it.readBytes() })
-// maybe add option to mirror image / gif on negative offset
-        private var layers: MutableList<ServiceLayer> = MutableList(0) { ServiceLayer(goose) }
+//        private var goose: Drawable = ColorDrawable(Color.TRANSPARENT)
+        private var flower: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resources, R.drawable.flower))
 
         override fun onDestroy() {
             job.cancel()
             for (l in layers) {
-                if (l.img is AnimatedImageDrawable) {
-                    (l.img as AnimatedImageDrawable).stop()
-                }
+                val img = l.img
+                if (img is ServiceImg.AnimatedGif) (img.img).stop()
             }
 
             Log.e("__walpService", "bye bye")
@@ -74,10 +76,6 @@ class WallpaperService : WallpaperService() {
             super.onCreate(surfaceHolder)
             Log.i("__walpService", "engine onCreate")
 
-//            layers.add(ServiceLayer(nyan, 1, 0))
-//            layers.add(ServiceLayer(goose, 12, 100))
-//            layers.add(ServiceLayer(nyan2, 3, 600))
-//            layers.add(ServiceLayer(flower, -16, -500))
 //            val bytes = resources.openRawResource(R.raw.nyan_cat).use { it.readBytes() }
 
             scope.launch {
@@ -86,10 +84,15 @@ class WallpaperService : WallpaperService() {
                     Log.d("__walpService", "num layers: ${layerDOs.size}")
                     layers.clear() // first- remove existing layers
                     for (layerDO in layerDOs) {
-                        addLayer(layerDO)
-                        if (layers[layers.size-1].img is AnimatedImageDrawable) {
-                            (layers[layers.size-1].img as AnimatedImageDrawable).start()
+                        val img = getDrawableFromUri(layerDO) ?: continue // if we can't get the image just skip it
+
+                        val l = ServiceLayer(img, layerDO.uri, layerDO.velocity, layerDO.offset)
+                        layers.add(l)
+
+                        if (img is ServiceImg.AnimatedGif) {
+                            img.img.start()
                         }
+
                     }
                 }
             }
@@ -97,43 +100,48 @@ class WallpaperService : WallpaperService() {
 
         }
 
-        private fun addLayer(layerDO: LayerDO) {
+        private fun getDrawableFromUri(layerDO: LayerDO) : ServiceImg? {
             val uri = Uri.parse(layerDO.uri)
             Log.i("__walpService", "uri: $uri")
             var inputStream: InputStream? = null
+            var img: ServiceImg? = null
             try {
                 inputStream = applicationContext.contentResolver.openInputStream(uri)
 
-                val drawable: Any?
+                // always skip back to bitmap as default image if to gif goes wrong
                 when (ImageType.fromInt(layerDO.imageType)) {
                     ImageType.BITMAP -> {
-                        drawable = ImageDecoder.decodeBitmap(ImageDecoder.createSource(applicationContext.contentResolver, uri))
+                        val default = ImageDecoder.decodeBitmap(ImageDecoder.createSource(applicationContext.contentResolver, uri))
+                        img = ServiceImg.StaticBitmap(default)
                     }
                     ImageType.CONTINUOUS_GIF -> {
-                        drawable = Drawable.createFromStream(inputStream, layerDO.uri)
+                        val d = Drawable.createFromStream(inputStream, layerDO.uri)
+                        if (d is AnimatedImageDrawable) {
+                            img = ServiceImg.AnimatedGif(d)
+                        } else {
+                            val default = ImageDecoder.decodeBitmap(ImageDecoder.createSource(applicationContext.contentResolver, uri))
+                            img = ServiceImg.StaticBitmap(default)
+                        }
                     }
                     ImageType.INTERACTIVE_GIF -> {
-                        val bytes = applicationContext.contentResolver
-                            .openInputStream(uri)!!
-                            .use { it.readBytes() }
-                        drawable = try {
-                            AnimationFrameHolder(applicationContext, bytes)
-                        } catch (e: Exception) {
-                            ImageDecoder.decodeBitmap(ImageDecoder.createSource(applicationContext.contentResolver, uri))
-                            Log.e("__walpService", "not a valid interactive gif - draw as bitmap")
+                        val bytes = applicationContext.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
+                        val d = AnimationFrameHolder.create(applicationContext, bytes)
+                        if (d != null) {
+                            img = ServiceImg.InteractiveGif(d)
+                        } else {
+                            val default = ImageDecoder.decodeBitmap(ImageDecoder.createSource(applicationContext.contentResolver, uri))
+                            img = ServiceImg.StaticBitmap(default)
                         }
                     }
                 }
 
-                if (drawable == null) {
-                    Log.e("__walpService", "can't draw image")
-                } else {
-                    layers.add(ServiceLayer(drawable, layerDO.velocity, layerDO.offset))
-                }
             } catch (e: FileNotFoundException) { e.printStackTrace()
-            } finally {
-                inputStream?.close()
-            }
+            } finally { inputStream?.close() }
+
+            if (img == null)
+                Log.e("__walpService", "can't draw image")
+
+            return img
         }
 
         override fun onSurfaceCreated(holder: SurfaceHolder) {
@@ -161,27 +169,29 @@ class WallpaperService : WallpaperService() {
                         val pos = - ((offset * canvas.width) * layer.velocity - layer.offset).toInt() // canvas width is the multiplier
 
                         when (layer.img) {
-                            is AnimatedImageDrawable -> {
-                                val layerImg = (layer.img as AnimatedImageDrawable)
+                            is ServiceImg.AnimatedGif -> {
+                                val layerImg = (layer.img.img as AnimatedImageDrawable)
                                 layerImg.setBounds(pos, 0, pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(), canvas.height)
                                 layerImg.draw(canvas)
                             }
 
-                            is AnimationFrameHolder -> {
-                                val layerImg = (layer.img as AnimationFrameHolder)
+                            is ServiceImg.InteractiveGif -> {
+                                val layerImg = (layer.img.img as AnimationFrameHolder)
                                 val bm = layerImg.getNextFrame()
                                 val destRect = Rect(0, 0, canvas.width, canvas.height)
                                 val srcRect = Rect(pos * bm.height / canvas.height, 0, pos * bm.height / canvas.height + (bm.height * canvasRatio).toInt(), bm.height)
                                 canvas.drawBitmap(bm, srcRect, destRect, paint)
                             }
 
-                            is Bitmap -> {
-                                val bm = (layer.img as Bitmap)
+                            is ServiceImg.StaticBitmap -> {
+                                val bm = (layer.img.img as Bitmap)
                                 val destRect = Rect(0, 0, canvas.width, canvas.height)
                                 val srcRect = Rect(pos * bm.height / canvas.height, 0, pos * bm.height / canvas.height + (bm.height * canvasRatio).toInt(), bm.height)
                                 canvas.drawBitmap(bm, srcRect, destRect, paint)
 
                             }
+
+                            is ServiceImg.Empty -> {} // well, we don't care
                         }
                     }
 
@@ -219,20 +229,14 @@ class WallpaperService : WallpaperService() {
             super.onVisibilityChanged(visible)
             Log.i("__walpService", "visible: $visible")
             if (visible) {
-
-
-                for (i in 0 until layers.size) {
-                    if (layers[i].img is AnimatedImageDrawable) {
-                        (layers[i].img as AnimatedImageDrawable).start()
-                    }
+                for (l in layers) {
+                    val img = l.img
+                    if (img is ServiceImg.AnimatedGif) (img.img).start()
                 }
             } else {
-//                scope.cancel()
-
-                for (i in 0 until layers.size) {
-                    if (layers[i].img is AnimatedImageDrawable) {
-                        (layers[i].img as AnimatedImageDrawable).stop()
-                    }
+                for (l in layers) {
+                    val img = l.img
+                    if (img is ServiceImg.AnimatedGif) (img.img).stop()
                 }
             }
         }

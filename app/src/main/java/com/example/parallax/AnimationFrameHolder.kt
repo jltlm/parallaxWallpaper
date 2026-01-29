@@ -42,6 +42,19 @@ class AnimationFrameHolder(context: Context, bytes: ByteArray, speed : Int = 20)
         delayIndex = delays[frameIndex] / delaySpeed
     }
 
+    companion object {
+        // builder, but if errors, return null
+        fun create(context: Context, bytes: ByteArray, speed : Int = 20) : AnimationFrameHolder? {
+            try {
+                return AnimationFrameHolder(context, bytes, speed)
+            } catch (e: Exception) {
+                Log.d("__walpService", "Not a valid GIF")
+            }
+            return null
+        }
+    }
+
+
     /**
      * Includes delay for timing
      */
