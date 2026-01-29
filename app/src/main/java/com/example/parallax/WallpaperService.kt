@@ -33,9 +33,10 @@ sealed class ServiceImg {
     class InteractiveGif(override val img: AnimationFrameHolder) : ServiceImg()
 }
 
-class ServiceLayer (img: ServiceImg, uri: String = "", velocity : Int = 1, offset: Int = 0) {
+class ServiceLayer (img: ServiceImg, imageType: ImageType, uri: String = "", velocity : Int = 1, offset: Int = 0) {
 
     var img: ServiceImg = ServiceImg.Empty()
+    var imageType: ImageType = ImageType.BITMAP
     var uri: String = ""
     var velocity: Double = 0.0
     var offset: Double = 0.0
@@ -43,6 +44,7 @@ class ServiceLayer (img: ServiceImg, uri: String = "", velocity : Int = 1, offse
     init {
         this.img = img
         this.uri = uri
+        this.imageType = imageType
         this.velocity = 1.0 * velocity / 10
         this.offset = 1.0 * offset
     }
@@ -53,7 +55,7 @@ class WallpaperService : WallpaperService() {
     inner class WallpaperEngine : Engine() {
         private val job = SupervisorJob()
         private val scope = CoroutineScope(Dispatchers.IO + job)
-        private var layers: MutableList<ServiceLayer> = MutableList(0) { ServiceLayer(ServiceImg.StaticBitmap(flower)) }
+        private var layers: MutableList<ServiceLayer> = MutableList(0) { ServiceLayer(ServiceImg.StaticBitmap(flower), ImageType.BITMAP) }
         private val paint = Paint()
 
 //        private var nyan: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.chalk_animation))
@@ -84,9 +86,12 @@ class WallpaperService : WallpaperService() {
                     Log.d("__walpService", "num layers: ${layerDOs.size}")
                     layers.clear() // first- remove existing layers
                     for (layerDO in layerDOs) {
-                        val img = getDrawableFromUri(layerDO) ?: continue // if we can't get the image just skip it
+                        val img = getImageFromUri(
+                            Uri.parse(layerDO.uri),
+                            ImageType.fromInt(layerDO.imageType)
+                        ) ?: continue // if we can't get the image just skip it
 
-                        val l = ServiceLayer(img, layerDO.uri, layerDO.velocity, layerDO.offset)
+                        val l = ServiceLayer(img, ImageType.fromInt(layerDO.imageType), layerDO.uri, layerDO.velocity, layerDO.offset)
                         layers.add(l)
 
                         if (img is ServiceImg.AnimatedGif) {
@@ -100,8 +105,7 @@ class WallpaperService : WallpaperService() {
 
         }
 
-        private fun getDrawableFromUri(layerDO: LayerDO) : ServiceImg? {
-            val uri = Uri.parse(layerDO.uri)
+        private fun getImageFromUri(uri: Uri, imageType: ImageType) : ServiceImg? {
             Log.i("__walpService", "uri: $uri")
             var inputStream: InputStream? = null
             var img: ServiceImg? = null
@@ -109,13 +113,13 @@ class WallpaperService : WallpaperService() {
                 inputStream = applicationContext.contentResolver.openInputStream(uri)
 
                 // always skip back to bitmap as default image if to gif goes wrong
-                when (ImageType.fromInt(layerDO.imageType)) {
+                when (imageType) {
                     ImageType.BITMAP -> {
                         val default = ImageDecoder.decodeBitmap(ImageDecoder.createSource(applicationContext.contentResolver, uri))
                         img = ServiceImg.StaticBitmap(default)
                     }
                     ImageType.CONTINUOUS_GIF -> {
-                        val d = Drawable.createFromStream(inputStream, layerDO.uri)
+                        val d = Drawable.createFromStream(inputStream, uri.toString())
                         if (d is AnimatedImageDrawable) {
                             img = ServiceImg.AnimatedGif(d)
                         } else {
@@ -230,6 +234,9 @@ class WallpaperService : WallpaperService() {
             Log.i("__walpService", "visible: $visible")
             if (visible) {
                 for (l in layers) {
+                    // this was for potential memory problems... but you know...
+                    // if the problems are that bad, just kill the engine...
+//                    l.img = getDrawableFromUri(Uri.parse(l.uri), l.imageType) ?: continue
                     val img = l.img
                     if (img is ServiceImg.AnimatedGif) (img.img).start()
                 }
@@ -237,6 +244,7 @@ class WallpaperService : WallpaperService() {
                 for (l in layers) {
                     val img = l.img
                     if (img is ServiceImg.AnimatedGif) (img.img).stop()
+//                    l.img = ServiceImg.Empty()
                 }
             }
         }
