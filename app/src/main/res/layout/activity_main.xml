@@ -18,8 +18,17 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <FrameLayout
-            android:layout_width="match_parent"
+            android:id="@+id/hsvFrameLayout"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/ivSampleEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="start"
+                android:contentDescription="@string/chosen_image"
+                android:scaleType="fitStart" />
 
             <ImageView
                 android:id="@+id/ivSampleBot"
@@ -48,7 +57,7 @@
     </HorizontalScrollView>
 
     <LinearLayout
-        android:id="@+id/linearLayout"
+        android:id="@+id/layoutIvSmall"
         android:layout_width="97dp"
         android:layout_height="365dp"
         android:orientation="vertical"

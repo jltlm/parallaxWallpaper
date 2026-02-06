@@ -6,11 +6,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
+import android.graphics.Matrix
+import android.graphics.drawable.AnimatedImageDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.View
+import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.SeekBar
@@ -19,6 +22,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.doOnLayout
+import androidx.core.view.get
 import androidx.datastore.core.DataStore
 import androidx.datastore.dataStore
 import androidx.lifecycle.lifecycleScope
@@ -28,7 +33,6 @@ import com.example.parallax.datastore.LayerListDO
 import kotlinx.coroutines.launch
 import java.io.FileNotFoundException
 import java.io.InputStream
-
 
 private const val DATA_STORE_FILE_NAME = "layers.pb"
 
@@ -41,16 +45,16 @@ class Layer(uri: String = "", velocity: Int = 0, offset: Int = 0, drawable: Draw
 
     var uri: Uri? = null
     var drawable: Drawable? = null
-    var velocity: Double = 0.0
-    var offset: Double = 0.0
+    var velocity: Int = 1
+    var offset: Int = 0
     var imageType: ImageType = ImageType.BITMAP
 
     init {
         this.uri = if (uri == "") null else Uri.parse(uri)
         this.imageType = imageType
         this.drawable = drawable
-        this.velocity = velocity * 1.0
-        this.offset = offset * 1.0
+        this.velocity = velocity
+        this.offset = offset
     }
 
 }
@@ -72,8 +76,8 @@ class LayerManager(
     }
 
     fun clearLayer() {
-        this.layer.velocity = 0.0
-        this.layer.offset = 0.0
+        this.layer.velocity = 1 // hehe
+        this.layer.offset = 0
         this.layer.uri = null
         this.layer.imageType = ImageType.BITMAP
         this.layer.drawable = null
@@ -89,19 +93,34 @@ class LayerManager(
             imageViewSmall.setImageBitmap(null)
             return
         }
+        if (this.layer.drawable is AnimatedImageDrawable) {
+            (this.layer.drawable as AnimatedImageDrawable).start()
+        }
 
         val dr = this.layer.drawable!!
 
-        imageViewSample.setImageDrawable(dr)
         imageViewSmall.setImageDrawable(dr)
-//        // this is to make the UI background long, like the actual background
-//        val bmWidth = dr.minimumWidth
-//        val bmHeight = dr.minimumWidth.toDouble() // funny sheet cuz of kotlin's integer division T_T
-//        imageViewSample.setImageBitmap(dr.scale((
-//            bmWidth/bmHeight * Resources.getSystem().displayMetrics.heightPixels).toInt(),
-//            Resources.getSystem().displayMetrics.heightPixels))
-//        imageViewSmall.setImageBitmap(dr.scale((
-//                bmWidth/bmHeight * imageViewSmall.height).toInt(), imageViewSmall.height))
+
+
+        val matrix = Matrix()
+        val drw = (dr.minimumWidth).toFloat()
+        val drh = (dr.minimumHeight).toFloat()
+        val fullHeight = (Resources.getSystem().displayMetrics.heightPixels).toFloat()
+        if (drw == 0f || drh == 0f) { // if the drawable doesn't have a h/w, who cares?
+        } else {
+            val fullWidth = drw/drh * fullHeight // this is the width of the image when scaled to fit the height of the screen
+            matrix.setScale(fullWidth/drw, fullHeight/drh)
+//            Log.i("__walpMain", "$matrix")
+
+            imageViewSample.layoutParams.width = fullWidth.toInt() // to fix some problem of imageView not scaling width
+        }
+
+        imageViewSample.imageMatrix = matrix
+        imageViewSample.scaleType = ImageView.ScaleType.MATRIX
+        imageViewSample.setImageDrawable(dr)
+
+//        Log.i("__walpMain", "${imageViewSample.width} x ${imageViewSample.height}")
+        // https://developer.android.com/reference/android/widget/ImageView#setImageMatrix(android.graphics.Matrix)
     }
 
 }
@@ -117,41 +136,48 @@ class MainActivity : AppCompatActivity() {
     private val screenWidth = Resources.getSystem().displayMetrics.widthPixels
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.i("__walpMain", "MainActivity onCreate")
+        Log.i("__walpMain", "Parallax Wallpaper activity onCreate")
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         // gonna want a loop for this later or something
-        layerManagers[1] = LayerManager(1, Layer(), binding.ivSmallBot, binding.ivSampleBot)
-        layerManagers[2] = LayerManager(2, Layer(), binding.ivSmallMid, binding.ivSampleMid)
-        layerManagers[3] = LayerManager(3, Layer(), binding.ivSmallTop, binding.ivSampleTop)
+        layerManagers[0] = LayerManager(0, Layer(), binding.ivSmallBot, binding.ivSampleBot)
+        layerManagers[1] = LayerManager(1, Layer(), binding.ivSmallMid, binding.ivSampleMid)
+        layerManagers[2] = LayerManager(2, Layer(), binding.ivSmallTop, binding.ivSampleTop)
+
+        // creating a wide imageView so horizontalScrollView will have a ways to scroll
+        binding.ivSampleEmpty.layoutParams.width = maxBackgroundWidthPx + screenWidth + 100 // magic. fix later
+        val fl = findViewById<FrameLayout>(R.id.hsvFrameLayout)
+
+//        for (index in 0 .. 2) { // 3 layers
+//            val ivSmall = View.inflate(applicationContext, R.layout. ...
+//            val ivBig = View.inflate(applicationContext, R.layout. ...
+//            layerManagers[index] = LayerManager(index, Layer(), ivSmall, ivBig)
+//        }
+
+        for (index in (0..<binding.layoutIvSmall.childCount)) {
+            val iv = binding.layoutIvSmall[binding.layoutIvSmall.childCount - 1 - index] // haha this is so flimsy maybe i should not loop
+            val lm = layerManagers[index] ?: continue
+            try {
+                iv.setOnClickListener {
+                    pickedLayer = index
+                    binding.tvSpeedValue.text = "${lm.layer.velocity}"
+                    binding.sbSpeed.progress = lm.layer.velocity
+                    binding.sbOffset.progress = lm.layer.offset
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+        }
 
         binding.btnClearAllLayers.setOnClickListener {
             clearAll()
         }
 
-        binding.ivSmallBot.setOnClickListener {
-            pickedLayer = 1
-            binding.tvSpeedValue.text = "${layerManagers[pickedLayer]!!.layer.velocity}"
-            binding.sbSpeed.progress = (layerManagers[pickedLayer]!!.layer.velocity * 10).toInt()
-            binding.sbOffset.progress = (layerManagers[pickedLayer]!!.layer.offset).toInt()
-        }
-        binding.ivSmallMid.setOnClickListener{
-            pickedLayer = 2
-            binding.tvSpeedValue.text = "${layerManagers[pickedLayer]!!.layer.velocity}"
-            binding.sbSpeed.progress = (layerManagers[pickedLayer]!!.layer.velocity * 10).toInt()
-            binding.sbOffset.progress = (layerManagers[pickedLayer]!!.layer.offset).toInt()
-        }
-        binding.ivSmallTop.setOnClickListener {
-            pickedLayer = 3
-            binding.tvSpeedValue.text = "${layerManagers[pickedLayer]!!.layer.velocity}"
-            binding.sbSpeed.progress = (layerManagers[pickedLayer]!!.layer.velocity * 10).toInt()
-            binding.sbOffset.progress = (layerManagers[pickedLayer]!!.layer.offset).toInt()
-        }
-
-        // guh
+        //////// image picking
         val imgPicker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             for (uri in uris) {
@@ -164,55 +190,27 @@ class MainActivity : AppCompatActivity() {
             getImgPermissions()
             imgPicker.launch(arrayOf("image/*"))
         }
+        // =============
 
-        binding.sbSpeed.visibility = View.GONE
-        binding.tvSpeedValue.setOnClickListener {
-            binding.sbSpeed.visibility = View.VISIBLE
-        }
-        binding.tvSpeedLabel.setOnClickListener {
-            binding.sbSpeed.visibility = View.VISIBLE
-        }
         binding.sbSpeed.max = maxSpeed
         binding.sbSpeed.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                binding.sbSpeed.visibility = View.GONE
-            }
+            override fun onStopTrackingTouch(seekBar: SeekBar) {}
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                binding.tvSpeedValue.text = "${progress/1.0}"
-                val speed = progress.toDouble()
-                layerManagers[pickedLayer]!!.layer.velocity = speed/1.0
+                binding.tvSpeedValue.text = "$progress"
+                layerManagers[pickedLayer]!!.layer.velocity = progress
             }
         })
 
-        binding.sbOffset.visibility = View.GONE
-        binding.tvOffsetValue.setOnClickListener {
-            binding.sbOffset.visibility = View.VISIBLE
-        }
-        binding.tvOffsetLabel.setOnClickListener {
-            binding.sbOffset.visibility = View.VISIBLE
-        }
-        binding.sbOffset.max = screenWidth / 20
+        binding.sbOffset.max = screenWidth // add help note: if you can't find layer, check your offset
         binding.sbOffset.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                binding.sbOffset.visibility = View.GONE
-            }
+            override fun onStopTrackingTouch(seekBar: SeekBar) {}
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 binding.tvOffsetValue.text = "$progress"
-                layerManagers[pickedLayer]!!.layer.offset = progress.toDouble() * -20 // this is my constant multiplier
+                layerManagers[pickedLayer]!!.layer.offset = progress
             }
         })
-
-//        binding.inputOffset.setOnEditorActionListener(TextView.OnEditorActionListener { v, actionId, _ ->
-//            if (actionId == EditorInfo.IME_ACTION_DONE) {
-//                val offset = v.text.toString().toDouble()
-//                layerManagers[pickedLayer]?.setVelocity(offset)
-//                Log.i("__walpMain", "offset set: $pickedLayer $offset")
-//                return@OnEditorActionListener true
-//            }
-//            false
-//        })
 
         binding.btnSetWallpaper.setOnClickListener { _ ->
             saveAll()
@@ -225,22 +223,23 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.sbPage.max = pageNum
-        maxBackgroundWidthPx = pageNum * screenWidth
-        binding.ivSampleBot.minimumWidth = maxBackgroundWidthPx + screenWidth
+//        binding.ivSampleBot.minimumWidth = maxBackgroundWidthPx + screenWidth
         binding.hsvSample.isHorizontalScrollBarEnabled = false
         binding.hsvSample.setOnScrollChangeListener { _, scrollX, _, _, _ ->
             if (binding.sbPage.max == 0 || maxBackgroundWidthPx == 0) { return@setOnScrollChangeListener }
 
-            val scrollPercent = scrollX * 1f / maxBackgroundWidthPx
-            val scrollMultiplier = screenWidth * scrollPercent
+//            val scrollPercent = scrollX * 1f / maxBackgroundWidthPx
+//            val scrollMultiplier = screenWidth * scrollPercent
 
             for ((_,v) in layerManagers) { // this is where the parallax scroll for the app UI happens
-                v.imageViewSample.translationX = (-scrollMultiplier * v.layer.velocity).toFloat() + scrollX + (-v.layer.offset).toFloat()
+                // multiplication by 1.0 so we get the right fractions
+                v.imageViewSample.translationX = (-1.0 * scrollX * (1.0 * v.layer.velocity / 2)).toFloat() + scrollX + v.layer.offset
             }
 
             if (scrollX > maxBackgroundWidthPx ) {
                 binding.hsvSample.scrollX = maxBackgroundWidthPx
                 binding.sbPage.progress = binding.sbPage.max
+                Log.i("__walpMain", "we hit max!!!")
             } else {
                 binding.sbPage.progress = ((scrollX * 1f / maxBackgroundWidthPx) / (1f / binding.sbPage.max)).toInt()
             }
@@ -251,7 +250,8 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    binding.hsvSample.scrollX = progress * maxBackgroundWidthPx / binding.sbPage.max
+                    binding.hsvSample.smoothScrollTo(progress * maxBackgroundWidthPx / binding.sbPage.max, 0)
+//                    binding.hsvSample.scrollX = progress * maxBackgroundWidthPx / binding.sbPage.max
                 }
                 Log.i("__walpMain", "current scroll: ${binding.hsvSample.scrollX}")
             }
@@ -259,8 +259,9 @@ class MainActivity : AppCompatActivity() {
 
         loadAll()
 
-
     }
+
+//    THIS IS UI SETUP NO MORE
 
     /**
      * init from settings
@@ -271,7 +272,7 @@ class MainActivity : AppCompatActivity() {
                 Log.d("__walpMain", "loading ${layerDOs.size} layers from repo")
                 for (layerDO in layerDOs) {
                     val uri = Uri.parse(layerDO.uri)
-                    Log.d("__walpMain", "loading ${layerDO.imageType} ")
+                    Log.i("__walpMain", "loading ${layerDO.level}: vel:${layerDO.velocity} offset:${layerDO.offset} type:${layerDO.imageType}")
 
                     // create new layer
                     val l = Layer(
@@ -297,7 +298,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun saveAll() {
         lifecycleScope.launch {
-            Log.i("__walpMain", "l1: " + layerManagers[1]!!.layer.velocity + " l2: " + layerManagers[2]!!.layer.velocity + " l3: " + layerManagers[3]!!.layer.velocity)
+            Log.i("__walpMain", "saving settings")
 
             LayerRepository.clearLayers(applicationContext)
 
@@ -305,13 +306,15 @@ class MainActivity : AppCompatActivity() {
                 val l = lm.layer
                 if (l.uri == null) { continue }
 
+                Log.i("__walpMain", "saving ${lm.level}: vel:${l.velocity} offset:${l.offset} type:${l.imageType.value}")
+
                 LayerRepository.addLayer(
                     applicationContext,
                     lm.level,
                     l.uri.toString(),
                     l.imageType.value,
-                    l.velocity.toInt(),
-                    l.offset.toInt()
+                    l.velocity,
+                    l.offset
                 )
             }
         }
@@ -343,7 +346,7 @@ class MainActivity : AppCompatActivity() {
 
         val layer: LayerManager = layerManagers[pickedLayer]!!
         layer.setUriDrawable(uri, drawableFromUri(uri))
-        layerManagers[pickedLayer]!!.layer.velocity = 0.0 // if new image picked, set to 0
+        layerManagers[pickedLayer]!!.layer.velocity = 0 // if new image picked, set to 0
         layer.updateUIElementImages()
     }
 
@@ -371,6 +374,5 @@ class MainActivity : AppCompatActivity() {
 
         return drawable
     }
-
 
 }

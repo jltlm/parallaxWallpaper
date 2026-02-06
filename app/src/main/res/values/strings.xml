@@ -6,4 +6,5 @@
     <string name="select_layer_mid">Select Middle Layer</string>
     <string name="select_layer_bot">Select Bottom Layer</string>
     <string name="set_wallpaper">Set Wallpaper</string>
+    <string name="layer_selector_btn">Layer Selector Btn</string>
 </resources>

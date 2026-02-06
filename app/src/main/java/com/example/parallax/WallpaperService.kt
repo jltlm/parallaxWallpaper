@@ -170,7 +170,7 @@ class WallpaperService : WallpaperService() {
 
                     for (i in 0 until layers.size) {
                         val layer = layers[i]
-                        val pos = - ((offset * canvas.width) * layer.velocity - layer.offset).toInt() // canvas width is the multiplier
+                        val pos = - ((offset * canvas.width) * (layer.velocity / 5.0) - layer.offset).toInt() // canvas width is the multiplier
 
                         when (layer.img) {
                             is ServiceImg.AnimatedGif -> {
