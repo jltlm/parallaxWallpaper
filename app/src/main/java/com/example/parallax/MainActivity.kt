@@ -1,5 +1,6 @@
 package com.example.parallax
 
+import android.Manifest
 import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Context
@@ -95,6 +96,7 @@ class LayerManager(
         }
         if (this.layer.drawable is AnimatedImageDrawable) {
             (this.layer.drawable as AnimatedImageDrawable).start()
+            this.layer.imageType = ImageType.CONTINUOUS_GIF
         }
 
         val dr = this.layer.drawable!!
@@ -239,7 +241,6 @@ class MainActivity : AppCompatActivity() {
             if (scrollX > maxBackgroundWidthPx ) {
                 binding.hsvSample.scrollX = maxBackgroundWidthPx
                 binding.sbPage.progress = binding.sbPage.max
-                Log.i("__walpMain", "we hit max!!!")
             } else {
                 binding.sbPage.progress = ((scrollX * 1f / maxBackgroundWidthPx) / (1f / binding.sbPage.max)).toInt()
             }
@@ -253,7 +254,7 @@ class MainActivity : AppCompatActivity() {
                     binding.hsvSample.smoothScrollTo(progress * maxBackgroundWidthPx / binding.sbPage.max, 0)
 //                    binding.hsvSample.scrollX = progress * maxBackgroundWidthPx / binding.sbPage.max
                 }
-                Log.i("__walpMain", "current scroll: ${binding.hsvSample.scrollX}")
+//                Log.i("__walpMain", "current scroll: ${binding.hsvSample.scrollX}")
             }
         })
 
@@ -335,9 +336,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun getImgPermissions () {
         Log.i("__walpMain", "getting permissions...")
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
             Log.i("__walpMain", "requesting perms")
-            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 1)
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 1)
         }
     }
 

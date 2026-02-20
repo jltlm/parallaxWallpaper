@@ -55,13 +55,13 @@ class WallpaperService : WallpaperService() {
     inner class WallpaperEngine : Engine() {
         private val job = SupervisorJob()
         private val scope = CoroutineScope(Dispatchers.IO + job)
+        private var flower: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resources, R.drawable.flower))
         private var layers: MutableList<ServiceLayer> = MutableList(0) { ServiceLayer(ServiceImg.StaticBitmap(flower), ImageType.BITMAP) }
         private val paint = Paint()
 
 //        private var nyan: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.chalk_animation))
 //        private var goose: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.goose))
 //        private var goose: Drawable = ColorDrawable(Color.TRANSPARENT)
-        private var flower: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resources, R.drawable.flower))
 
         override fun onDestroy() {
             job.cancel()
@@ -231,7 +231,7 @@ class WallpaperService : WallpaperService() {
 
         override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
-            Log.i("__walpService", "visible: $visible")
+//            Log.i("__walpService", "visible: $visible")
             if (visible) {
                 for (l in layers) {
                     // this was for potential memory problems... but you know...
