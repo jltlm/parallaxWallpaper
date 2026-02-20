@@ -1,203 +1,205 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/coordinatorLayout"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#242424"
-    android:fitsSystemWindows="false"
-    tools:context=".MainActivity">
+<LinearLayout android:layout_width="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android"  android:layout_height="match_parent"/>
+<!--<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"-->
+<!--    xmlns:app="http://schemas.android.com/apk/res-auto"-->
+<!--    xmlns:tools="http://schemas.android.com/tools"-->
+<!--    android:id="@+id/coordinatorLayout"-->
+<!--    android:layout_width="match_parent"-->
+<!--    android:layout_height="match_parent"-->
+<!--    android:background="#242424"-->
+<!--    android:fitsSystemWindows="false"-->
+<!--    tools:context=".MainActivity">-->
 
-    <HorizontalScrollView
-        android:id="@+id/hsvSample"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fitsSystemWindows="false"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+<!--    <HorizontalScrollView-->
+<!--        android:id="@+id/hsvSample"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="match_parent"-->
+<!--        android:fitsSystemWindows="false"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toTopOf="parent">-->
 
-        <FrameLayout
-            android:id="@+id/hsvFrameLayout"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent">
+<!--        <FrameLayout-->
+<!--            android:id="@+id/hsvFrameLayout"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="match_parent">-->
 
-            <ImageView
-                android:id="@+id/ivSampleEmpty"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="start"
-                android:contentDescription="@string/chosen_image"
-                android:scaleType="fitStart" />
+<!--            <ImageView-->
+<!--                android:id="@+id/ivSampleEmpty"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:layout_gravity="start"-->
+<!--                android:contentDescription="@string/chosen_image"-->
+<!--                android:scaleType="fitStart" />-->
 
-            <ImageView
-                android:id="@+id/ivSampleBot"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="start"
-                android:contentDescription="@string/chosen_image"
-                android:scaleType="fitStart" />
+<!--            <ImageView-->
+<!--                android:id="@+id/ivSampleBot"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:layout_gravity="start"-->
+<!--                android:contentDescription="@string/chosen_image"-->
+<!--                android:scaleType="fitStart" />-->
 
-            <ImageView
-                android:id="@+id/ivSampleMid"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="start"
-                android:contentDescription="@string/chosen_image"
-                android:scaleType="fitStart" />
+<!--            <ImageView-->
+<!--                android:id="@+id/ivSampleMid"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:layout_gravity="start"-->
+<!--                android:contentDescription="@string/chosen_image"-->
+<!--                android:scaleType="fitStart" />-->
 
-            <ImageView
-                android:id="@+id/ivSampleTop"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="start"
-                android:contentDescription="@string/chosen_image"
-                android:scaleType="fitStart" />
-        </FrameLayout>
-    </HorizontalScrollView>
+<!--            <ImageView-->
+<!--                android:id="@+id/ivSampleTop"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:layout_gravity="start"-->
+<!--                android:contentDescription="@string/chosen_image"-->
+<!--                android:scaleType="fitStart" />-->
+<!--        </FrameLayout>-->
+<!--    </HorizontalScrollView>-->
 
-    <LinearLayout
-        android:id="@+id/layoutIvSmall"
-        android:layout_width="97dp"
-        android:layout_height="365dp"
-        android:orientation="vertical"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+<!--    <LinearLayout-->
+<!--        android:id="@+id/layoutIvSmall"-->
+<!--        android:layout_width="97dp"-->
+<!--        android:layout_height="365dp"-->
+<!--        android:orientation="vertical"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toTopOf="parent">-->
 
-        <ImageButton
-            android:id="@+id/ivSmallTop"
-            android:layout_width="64dp"
-            android:layout_height="97dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
-            android:contentDescription="@string/select_layer_top"
-            app:srcCompat="@drawable/empty_iv" />
+<!--        <ImageButton-->
+<!--            android:id="@+id/ivSmallTop"-->
+<!--            android:layout_width="64dp"-->
+<!--            android:layout_height="97dp"-->
+<!--            android:layout_marginStart="16dp"-->
+<!--            android:layout_marginTop="16dp"-->
+<!--            android:contentDescription="@string/select_layer_top"-->
+<!--            app:srcCompat="@drawable/empty_iv" />-->
 
-        <ImageButton
-            android:id="@+id/ivSmallMid"
-            android:layout_width="64dp"
-            android:layout_height="97dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
-            android:contentDescription="@string/select_layer_mid"
-            app:srcCompat="@drawable/empty_iv" />
+<!--        <ImageButton-->
+<!--            android:id="@+id/ivSmallMid"-->
+<!--            android:layout_width="64dp"-->
+<!--            android:layout_height="97dp"-->
+<!--            android:layout_marginStart="16dp"-->
+<!--            android:layout_marginTop="16dp"-->
+<!--            android:contentDescription="@string/select_layer_mid"-->
+<!--            app:srcCompat="@drawable/empty_iv" />-->
 
-        <ImageButton
-            android:id="@+id/ivSmallBot"
-            android:layout_width="64dp"
-            android:layout_height="97dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
-            android:contentDescription="@string/select_layer_bot"
-            app:srcCompat="@drawable/empty_iv" />
+<!--        <ImageButton-->
+<!--            android:id="@+id/ivSmallBot"-->
+<!--            android:layout_width="64dp"-->
+<!--            android:layout_height="97dp"-->
+<!--            android:layout_marginStart="16dp"-->
+<!--            android:layout_marginTop="16dp"-->
+<!--            android:contentDescription="@string/select_layer_bot"-->
+<!--            app:srcCompat="@drawable/empty_iv" />-->
 
-    </LinearLayout>
+<!--    </LinearLayout>-->
 
 
-    <SeekBar
-        android:id="@+id/sbPage"
-        style="@style/Widget.AppCompat.SeekBar.Discrete"
-        android:layout_width="264dp"
-        android:layout_height="26dp"
-        android:layout_marginStart="84dp"
-        android:layout_marginBottom="88dp"
-        android:max="10"
-        android:progress="3"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+<!--    <SeekBar-->
+<!--        android:id="@+id/sbPage"-->
+<!--        style="@style/Widget.AppCompat.SeekBar.Discrete"-->
+<!--        android:layout_width="264dp"-->
+<!--        android:layout_height="26dp"-->
+<!--        android:layout_marginStart="84dp"-->
+<!--        android:layout_marginBottom="88dp"-->
+<!--        android:max="10"-->
+<!--        android:progress="3"-->
+<!--        app:layout_constraintBottom_toBottomOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent" />-->
 
-    <LinearLayout
-        android:id="@+id/linearLayout3"
-        android:layout_width="328dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="500dp"
-        android:orientation="vertical"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+<!--    <LinearLayout-->
+<!--        android:id="@+id/linearLayout3"-->
+<!--        android:layout_width="328dp"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_marginStart="16dp"-->
+<!--        android:layout_marginTop="500dp"-->
+<!--        android:orientation="vertical"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toTopOf="parent">-->
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+<!--        <LinearLayout-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:orientation="horizontal">-->
 
-            <TextView
-                android:id="@+id/tvSpeedLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="speed: "
-                android:textColor="@color/white" />
+<!--            <TextView-->
+<!--                android:id="@+id/tvSpeedLabel"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="speed: "-->
+<!--                android:textColor="@color/white" />-->
 
-            <TextView
-                android:id="@+id/tvSpeedValue"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0"
-                android:textColor="@color/white" />
+<!--            <TextView-->
+<!--                android:id="@+id/tvSpeedValue"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="0"-->
+<!--                android:textColor="@color/white" />-->
 
-            <SeekBar
-                android:id="@+id/sbSpeed"
-                android:layout_width="276dp"
-                android:layout_height="21dp" />
-        </LinearLayout>
+<!--            <SeekBar-->
+<!--                android:id="@+id/sbSpeed"-->
+<!--                android:layout_width="276dp"-->
+<!--                android:layout_height="21dp" />-->
+<!--        </LinearLayout>-->
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+<!--        <LinearLayout-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:orientation="horizontal">-->
 
-            <TextView
-                android:id="@+id/tvOffsetLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="offset: "
-                android:textColor="@color/white" />
+<!--            <TextView-->
+<!--                android:id="@+id/tvOffsetLabel"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="offset: "-->
+<!--                android:textColor="@color/white" />-->
 
-            <TextView
-                android:id="@+id/tvOffsetValue"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0"
-                android:textColor="@color/white" />
+<!--            <TextView-->
+<!--                android:id="@+id/tvOffsetValue"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="0"-->
+<!--                android:textColor="@color/white" />-->
 
-            <SeekBar
-                android:id="@+id/sbOffset"
-                android:layout_width="match_parent"
-                android:layout_height="21dp" />
+<!--            <SeekBar-->
+<!--                android:id="@+id/sbOffset"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="21dp" />-->
 
-        </LinearLayout>
+<!--        </LinearLayout>-->
 
-    </LinearLayout>
+<!--    </LinearLayout>-->
 
-    <Button
-        android:id="@+id/btnClearAllLayers"
-        android:layout_width="147dp"
-        android:layout_height="51dp"
-        android:text="Clear All Layers"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+<!--    <Button-->
+<!--        android:id="@+id/btnClearAllLayers"-->
+<!--        android:layout_width="147dp"-->
+<!--        android:layout_height="51dp"-->
+<!--        android:text="Clear All Layers"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintTop_toTopOf="parent" />-->
 
-    <Button
-        android:id="@+id/btnSelectImage"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:background="@color/design_default_color_primary"
-        android:text="@string/select_image"
-        app:icon="@android:drawable/ic_menu_gallery"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.092"
-        app:layout_constraintStart_toStartOf="parent" />
+<!--    <Button-->
+<!--        android:id="@+id/btnSelectImage"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_marginBottom="16dp"-->
+<!--        android:background="@color/design_default_color_primary"-->
+<!--        android:text="@string/select_image"-->
+<!--        app:icon="@android:drawable/ic_menu_gallery"-->
+<!--        app:layout_constraintBottom_toBottomOf="parent"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintHorizontal_bias="0.092"-->
+<!--        app:layout_constraintStart_toStartOf="parent" />-->
 
-    <Button
-        android:id="@+id/btnSetWallpaper"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:text="Set Wallpaper"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+<!--    <Button-->
+<!--        android:id="@+id/btnSetWallpaper"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_marginEnd="16dp"-->
+<!--        android:layout_marginBottom="16dp"-->
+<!--        android:text="Set Wallpaper"-->
+<!--        app:layout_constraintBottom_toBottomOf="parent"-->
+<!--        app:layout_constraintEnd_toEndOf="parent" />-->
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+<!--</androidx.constraintlayout.widget.ConstraintLayout>-->
