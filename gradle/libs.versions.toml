@@ -18,6 +18,7 @@ filamentAndroid = "1.17.1"
 activity = "1.9.3"
 datastoreCoreAndroid = "1.1.7"
 protobufKotlinLite = "4.32.1"
+appcompatVersion = "1.7.1"
 
 [libraries]
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "accompanistDrawablepainter" }
@@ -39,6 +40,7 @@ filament-android = { group = "com.google.ar.sceneform", name = "filament-android
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-datastore-core-android = { group = "androidx.datastore", name = "datastore-core-android", version.ref = "datastoreCoreAndroid" }
 protobuf-kotlin-lite = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobufKotlinLite" }
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompatVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

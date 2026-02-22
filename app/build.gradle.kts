@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.androidx.datastore.core.android)
     implementation(libs.protobuf.kotlin.lite)
     implementation(libs.glide.v4142)
+    implementation(libs.appcompat)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

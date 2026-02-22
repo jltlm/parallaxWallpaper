@@ -7,14 +7,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
+import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.drawable.AnimatedImageDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.widget.FrameLayout
-import android.widget.HorizontalScrollView
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.SeekBar
@@ -23,7 +22,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.doOnLayout
 import androidx.core.view.get
 import androidx.datastore.core.DataStore
 import androidx.datastore.dataStore
@@ -34,6 +32,7 @@ import com.example.parallax.datastore.LayerListDO
 import kotlinx.coroutines.launch
 import java.io.FileNotFoundException
 import java.io.InputStream
+import androidx.core.net.toUri
 
 private const val DATA_STORE_FILE_NAME = "layers.pb"
 
@@ -51,7 +50,7 @@ class Layer(uri: String = "", velocity: Int = 0, offset: Int = 0, drawable: Draw
     var imageType: ImageType = ImageType.BITMAP
 
     init {
-        this.uri = if (uri == "") null else Uri.parse(uri)
+        this.uri = if (uri == "") null else uri.toUri()
         this.imageType = imageType
         this.drawable = drawable
         this.velocity = velocity
@@ -117,6 +116,7 @@ class LayerManager(
             imageViewSample.layoutParams.width = fullWidth.toInt() // to fix some problem of imageView not scaling width
         }
 
+        // the order of these three following things matter >:(
         imageViewSample.imageMatrix = matrix
         imageViewSample.scaleType = ImageView.ScaleType.MATRIX
         imageViewSample.setImageDrawable(dr)
@@ -137,6 +137,8 @@ class MainActivity : AppCompatActivity() {
     private val maxSpeed = 50
     private val screenWidth = Resources.getSystem().displayMetrics.widthPixels
 
+    private val canvas: Canvas = Canvas()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.i("__walpMain", "Parallax Wallpaper activity onCreate")
         super.onCreate(savedInstanceState)
@@ -151,7 +153,6 @@ class MainActivity : AppCompatActivity() {
 
         // creating a wide imageView so horizontalScrollView will have a ways to scroll
         binding.ivSampleEmpty.layoutParams.width = maxBackgroundWidthPx + screenWidth + 100 // magic. fix later
-        val fl = findViewById<FrameLayout>(R.id.hsvFrameLayout)
 
 //        for (index in 0 .. 2) { // 3 layers
 //            val ivSmall = View.inflate(applicationContext, R.layout. ...
@@ -272,7 +273,7 @@ class MainActivity : AppCompatActivity() {
             LayerRepository.getLayerFlow(applicationContext).collect { layerDOs: List<LayerDO> ->
                 Log.d("__walpMain", "loading ${layerDOs.size} layers from repo")
                 for (layerDO in layerDOs) {
-                    val uri = Uri.parse(layerDO.uri)
+                    val uri = layerDO.uri.toUri()
                     Log.i("__walpMain", "loading ${layerDO.level}: vel:${layerDO.velocity} offset:${layerDO.offset} type:${layerDO.imageType}")
 
                     // create new layer
@@ -332,6 +333,9 @@ class MainActivity : AppCompatActivity() {
             lm.clearLayer()
             lm.updateUIElementImages()
         }
+        binding.sbPage.progress = 0
+        binding.sbSpeed.progress = 0
+        binding.sbOffset.progress = 0
     }
 
     private fun getImgPermissions () {

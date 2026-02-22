@@ -9,7 +9,6 @@ import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.graphics.drawable.AnimatedImageDrawable
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.service.wallpaper.WallpaperService
@@ -22,12 +21,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.io.FileNotFoundException
 import java.io.InputStream
+import androidx.core.graphics.drawable.toDrawable
+import androidx.core.net.toUri
 
 
 sealed class ServiceImg {
     abstract val img: Any
 
-    class Empty(override val img: Drawable = ColorDrawable(Color.TRANSPARENT)) : ServiceImg()
+    class Empty(override val img: Drawable = Color.TRANSPARENT.toDrawable()) : ServiceImg()
     class StaticBitmap(override val img: Bitmap) : ServiceImg()
     class AnimatedGif(override val img: AnimatedImageDrawable) : ServiceImg()
     class InteractiveGif(override val img: AnimationFrameHolder) : ServiceImg()
@@ -87,7 +88,7 @@ class WallpaperService : WallpaperService() {
                     layers.clear() // first- remove existing layers
                     for (layerDO in layerDOs) {
                         val img = getImageFromUri(
-                            Uri.parse(layerDO.uri),
+                            layerDO.uri.toUri(),
                             ImageType.fromInt(layerDO.imageType)
                         ) ?: continue // if we can't get the image just skip it
 
