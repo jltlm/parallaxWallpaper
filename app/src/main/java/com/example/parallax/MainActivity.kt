@@ -7,15 +7,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
-import android.graphics.Canvas
-import android.graphics.Matrix
 import android.graphics.drawable.AnimatedImageDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -62,8 +59,7 @@ class Layer(uri: String = "", velocity: Int = 0, offset: Int = 0, drawable: Draw
 class LayerManager(
     val level: Int,
     var layer: Layer,
-    var imageViewSmall: ImageButton,
-    var imageViewSample: ImageView
+    var imageViewSmall: ImageButton
 ) {
 
     fun setUriDrawable (uri: Uri, drawable: Drawable?) {
@@ -89,7 +85,6 @@ class LayerManager(
 
     fun updateUIElementImages() {
         if (this.layer.drawable == null) {
-            imageViewSample.setImageBitmap(null)
             imageViewSmall.setImageBitmap(null)
             return
         }
@@ -102,27 +97,6 @@ class LayerManager(
 
         imageViewSmall.setImageDrawable(dr)
 
-
-        val matrix = Matrix()
-        val drw = (dr.minimumWidth).toFloat()
-        val drh = (dr.minimumHeight).toFloat()
-        val fullHeight = (Resources.getSystem().displayMetrics.heightPixels).toFloat()
-        if (drw == 0f || drh == 0f) { // if the drawable doesn't have a h/w, who cares?
-        } else {
-            val fullWidth = drw/drh * fullHeight // this is the width of the image when scaled to fit the height of the screen
-            matrix.setScale(fullWidth/drw, fullHeight/drh)
-//            Log.i("__walpMain", "$matrix")
-
-            imageViewSample.layoutParams.width = fullWidth.toInt() // to fix some problem of imageView not scaling width
-        }
-
-        // the order of these three following things matter >:(
-        imageViewSample.imageMatrix = matrix
-        imageViewSample.scaleType = ImageView.ScaleType.MATRIX
-        imageViewSample.setImageDrawable(dr)
-
-//        Log.i("__walpMain", "${imageViewSample.width} x ${imageViewSample.height}")
-        // https://developer.android.com/reference/android/widget/ImageView#setImageMatrix(android.graphics.Matrix)
     }
 
 }
@@ -133,11 +107,11 @@ class MainActivity : AppCompatActivity() {
     private var pickedLayer : Int = 1
     private val layerManagers : MutableMap<Int, LayerManager> = mutableMapOf()
     private var pageNum = 3
-    private var maxBackgroundWidthPx = pageNum * 1000
     private val maxSpeed = 50
     private val screenWidth = Resources.getSystem().displayMetrics.widthPixels
+    private var maxBackgroundWidthPx = screenWidth * 3
 
-    private val canvas: Canvas = Canvas()
+    private var pickedConfig : ConfigOption? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.i("__walpMain", "Parallax Wallpaper activity onCreate")
@@ -147,12 +121,13 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         // gonna want a loop for this later or something
-        layerManagers[0] = LayerManager(0, Layer(), binding.ivSmallBot, binding.ivSampleBot)
-        layerManagers[1] = LayerManager(1, Layer(), binding.ivSmallMid, binding.ivSampleMid)
-        layerManagers[2] = LayerManager(2, Layer(), binding.ivSmallTop, binding.ivSampleTop)
+        layerManagers[0] = LayerManager(0, Layer(), binding.ivSmallBot)
+        layerManagers[1] = LayerManager(1, Layer(), binding.ivSmallMid)
+        layerManagers[2] = LayerManager(2, Layer(), binding.ivSmallTop)
 
         // creating a wide imageView so horizontalScrollView will have a ways to scroll
-        binding.ivSampleEmpty.layoutParams.width = maxBackgroundWidthPx + screenWidth + 100 // magic. fix later
+//        binding.ivCanvas.layoutParams.width = maxBackgroundWidthPx + screenWidth + 100 // magic. fix later
+//        binding.ivCanvas.isHorizontalScrollBarEnabled = true
 
 //        for (index in 0 .. 2) { // 3 layers
 //            val ivSmall = View.inflate(applicationContext, R.layout. ...
@@ -198,7 +173,11 @@ class MainActivity : AppCompatActivity() {
         binding.sbSpeed.max = maxSpeed
         binding.sbSpeed.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                val slayer = binding.ivCanvas.getLayer(pickedLayer) ?: return
+                slayer.velocity = binding.sbSpeed.progress * - 1.0
+                binding.ivCanvas.setLayer(pickedLayer, slayer)
+            }
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 binding.tvSpeedValue.text = "$progress"
                 layerManagers[pickedLayer]!!.layer.velocity = progress
@@ -208,7 +187,11 @@ class MainActivity : AppCompatActivity() {
         binding.sbOffset.max = screenWidth // add help note: if you can't find layer, check your offset
         binding.sbOffset.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                val slayer = binding.ivCanvas.getLayer(pickedLayer) ?: return
+                slayer.offset = binding.sbOffset.progress * 1.0
+                binding.ivCanvas.setLayer(pickedLayer, slayer)
+            }
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 binding.tvOffsetValue.text = "$progress"
                 layerManagers[pickedLayer]!!.layer.offset = progress
@@ -226,34 +209,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.sbPage.max = pageNum
-//        binding.ivSampleBot.minimumWidth = maxBackgroundWidthPx + screenWidth
-        binding.hsvSample.isHorizontalScrollBarEnabled = false
-        binding.hsvSample.setOnScrollChangeListener { _, scrollX, _, _, _ ->
-            if (binding.sbPage.max == 0 || maxBackgroundWidthPx == 0) { return@setOnScrollChangeListener }
-
-//            val scrollPercent = scrollX * 1f / maxBackgroundWidthPx
-//            val scrollMultiplier = screenWidth * scrollPercent
-
-            for ((_,v) in layerManagers) { // this is where the parallax scroll for the app UI happens
-                // multiplication by 1.0 so we get the right fractions
-                v.imageViewSample.translationX = (-1.0 * scrollX * (1.0 * v.layer.velocity / 2)).toFloat() + scrollX + v.layer.offset
-            }
-
-            if (scrollX > maxBackgroundWidthPx ) {
-                binding.hsvSample.scrollX = maxBackgroundWidthPx
-                binding.sbPage.progress = binding.sbPage.max
-            } else {
-                binding.sbPage.progress = ((scrollX * 1f / maxBackgroundWidthPx) / (1f / binding.sbPage.max)).toInt()
-            }
-        }
-
         binding.sbPage.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    binding.hsvSample.smoothScrollTo(progress * maxBackgroundWidthPx / binding.sbPage.max, 0)
-//                    binding.hsvSample.scrollX = progress * maxBackgroundWidthPx / binding.sbPage.max
+                    binding.ivCanvas.draw(progress * maxBackgroundWidthPx / pageNum)
                 }
 //                Log.i("__walpMain", "current scroll: ${binding.hsvSample.scrollX}")
             }
@@ -272,6 +233,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             LayerRepository.getLayerFlow(applicationContext).collect { layerDOs: List<LayerDO> ->
                 Log.d("__walpMain", "loading ${layerDOs.size} layers from repo")
+                val serviceLayers = mutableMapOf<Int, ServiceLayer>()
                 for (layerDO in layerDOs) {
                     val uri = layerDO.uri.toUri()
                     Log.i("__walpMain", "loading ${layerDO.level}: vel:${layerDO.velocity} offset:${layerDO.offset} type:${layerDO.imageType}")
@@ -288,9 +250,18 @@ class MainActivity : AppCompatActivity() {
                     lm?.loadLayer(l)
 
                     // updating UI
+                    val serviceLayer = ServiceLayer.create(
+                        context = applicationContext,
+                        uriString = layerDO.uri,
+                        imageType = layerDO.imageType,
+                        velocity = layerDO.velocity,
+                        offset = layerDO.offset
+                    ) ?: continue
+                    serviceLayers[layerDO.level] = serviceLayer
                     lm?.setUriDrawable(uri, drawableFromUri(uri))
                     lm?.updateUIElementImages()
                 }
+                binding.ivCanvas.setLayers(serviceLayers)
             }
         }
     }
@@ -336,6 +307,8 @@ class MainActivity : AppCompatActivity() {
         binding.sbPage.progress = 0
         binding.sbSpeed.progress = 0
         binding.sbOffset.progress = 0
+
+        binding.ivCanvas.clear()
     }
 
     private fun getImgPermissions () {
@@ -353,6 +326,14 @@ class MainActivity : AppCompatActivity() {
         layer.setUriDrawable(uri, drawableFromUri(uri))
         layerManagers[pickedLayer]!!.layer.velocity = 0 // if new image picked, set to 0
         layer.updateUIElementImages()
+
+        // updating UI
+        val serviceLayer = ServiceLayer.create(
+            applicationContext,layer.layer.uri.toString(), layer.layer.imageType.value, layer.layer.velocity, layer.layer.offset
+        )
+        if (serviceLayer != null) {
+            binding.ivCanvas.setLayer(layer.level, serviceLayer)
+        }
     }
 
     /**

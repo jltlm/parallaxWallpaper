@@ -9,57 +9,15 @@
     android:fitsSystemWindows="false"
     tools:context=".MainActivity">
 
-    <HorizontalScrollView
-        android:id="@+id/hsvSample"
+    <com.example.parallax.ParallaxWallpaperView
+        android:id="@+id/ivCanvas"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fitsSystemWindows="false"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <FrameLayout
-            android:id="@+id/hsvFrameLayout"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent">
-
-            <ImageView
-                android:id="@+id/ivSampleEmpty"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="start"
-                android:contentDescription="@string/chosen_image"
-                android:scaleType="fitStart" />
-
-            <ImageView
-                android:id="@+id/ivSampleBot"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="start"
-                android:contentDescription="@string/chosen_image"
-                android:scaleType="fitStart" />
-
-            <ImageView
-                android:id="@+id/ivSampleMid"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="start"
-                android:contentDescription="@string/chosen_image"
-                android:scaleType="fitStart" />
-
-            <ImageView
-                android:id="@+id/ivSampleTop"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="start"
-                android:contentDescription="@string/chosen_image"
-                android:scaleType="fitStart" />
-        </FrameLayout>
-    </HorizontalScrollView>
+        android:layout_height="match_parent" />
 
     <LinearLayout
         android:id="@+id/layoutIvSmall"
-        android:layout_width="97dp"
-        android:layout_height="365dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -67,7 +25,7 @@
         <ImageButton
             android:id="@+id/ivSmallTop"
             android:layout_width="64dp"
-            android:layout_height="97dp"
+            android:layout_height="64dp"
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
             android:contentDescription="@string/select_layer_top"
@@ -76,7 +34,7 @@
         <ImageButton
             android:id="@+id/ivSmallMid"
             android:layout_width="64dp"
-            android:layout_height="97dp"
+            android:layout_height="64dp"
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
             android:contentDescription="@string/select_layer_mid"
@@ -85,11 +43,24 @@
         <ImageButton
             android:id="@+id/ivSmallBot"
             android:layout_width="64dp"
-            android:layout_height="97dp"
+            android:layout_height="64dp"
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
             android:contentDescription="@string/select_layer_bot"
             app:srcCompat="@drawable/empty_iv" />
+
+        <Button
+            android:id="@+id/btnSelectImage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@color/design_default_color_primary"
+            android:text="@string/select_image"
+            app:icon="@android:drawable/ic_menu_gallery"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.092"
+            app:layout_constraintStart_toStartOf="parent" />
 
     </LinearLayout>
 
@@ -169,35 +140,75 @@
 
     </LinearLayout>
 
-    <Button
-        android:id="@+id/btnClearAllLayers"
-        android:layout_width="147dp"
-        android:layout_height="51dp"
-        android:text="Clear All Layers"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <Button
-        android:id="@+id/btnSelectImage"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:background="@color/design_default_color_primary"
-        android:text="@string/select_image"
-        app:icon="@android:drawable/ic_menu_gallery"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.092"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <Button
-        android:id="@+id/btnSetWallpaper"
-        android:layout_width="wrap_content"
+        <Button
+            android:id="@+id/btnClearAllLayers"
+            android:layout_width="wrap_content"
+            android:layout_height="51dp"
+            android:text="CAL"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <Button
+            android:id="@+id/btnSetWallpaper"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:text="OK"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:text="Set Wallpaper"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!--        name row -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/tvScaleOptionTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Scale"
+                android:textColor="@color/white" />
+
+        </LinearLayout>
+
+        <!--        icon row -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageButton
+                android:id="@+id/scaleOptionIconButton"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:contentDescription="scale"
+                android:src="@drawable/flower" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
