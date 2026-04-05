@@ -18,10 +18,21 @@ class SettingData (
     value: Int = 0,
     onValueChanged: (ConfigOption, Int) -> Unit
 ) {
+    var sb: SeekBar? = null
 
     // this is the fancy schmancy hi-tech wiring between the UI value and the data value!!
-    var value: Int by Delegates.observable(value) { _, _, newValue ->
-        onValueChanged(option, newValue)
+    var value: Int by Delegates.observable(value) { _, oldValue, newValue ->
+        if (oldValue != newValue) {
+            onValueChanged(option, newValue)
+        }
+    }
+
+    // this might call onValueChanged (above), but shouldn't matter
+    // is only ever called once, when loading new layer
+
+    fun setSettingValue(amount: Int) {
+        this.value = amount
+        this.sb?.progress = amount
     }
 }
 
@@ -42,7 +53,6 @@ class RecyclerViewImgEditAdapter internal constructor(
 
     // binds the data to the TextView in each row
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-//        holder.tvName.text = setting
         holder.bind(mData[position])
     }
 
@@ -68,8 +78,11 @@ class RecyclerViewImgEditAdapter internal constructor(
         }
 
         fun bind(setting: SettingData) {
+            setting.sb = sb
+
             tvName.text = setting.option.title
             tvVal.text = "${setting.value}"
+            sb.progress = setting.value
 
             val isExpanded = expandedItems.contains(setting)
             if (isExpanded) {
@@ -93,16 +106,14 @@ class RecyclerViewImgEditAdapter internal constructor(
                     progress: Int,
                     fromUser: Boolean
                 ) {
-                    setting.value = progress
                     tvVal.text = "$progress"
-//                    val isChecked = binding.checkbox.isChecked
-//                    itemList[bindingAdapterPosition].isChecked = isChecked
-//                    listener.onCheckChanged(bindingAdapterPosition, isChecked)
                 }
 
-                override fun onStartTrackingTouch(p0: SeekBar?) {}
+                override fun onStartTrackingTouch(p0: SeekBar) {}
 
-                override fun onStopTrackingTouch(p0: SeekBar?) {}
+                override fun onStopTrackingTouch(p0: SeekBar) {
+                    setting.value = p0.progress
+                }
 
             })
         }
