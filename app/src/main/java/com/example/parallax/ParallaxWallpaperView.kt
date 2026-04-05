@@ -179,7 +179,7 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
 
         draw(offsetDraw)
         offset = offsetDraw
-        Log.i("__walpMainView", "SCROLL CHANGED, $offset")
+//        Log.i("__walpMainView", "SCROLL CHANGED, $offset")
     }
 
     private fun fling(velocityX: Int, velocityY: Int) {

@@ -12,6 +12,7 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.ImageButton
 import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,6 +31,10 @@ import kotlinx.coroutines.launch
 import java.io.FileNotFoundException
 import java.io.InputStream
 import androidx.core.net.toUri
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.parallax.SettingData
+import kotlin.properties.Delegates
 
 private const val DATA_STORE_FILE_NAME = "layers.pb"
 
@@ -99,19 +104,39 @@ class LayerManager(
 
     }
 
+    fun setConfigValue(configOption: ConfigOption, amount: Int) {
+        when (configOption) {
+            ConfigOption.VELOCITY -> this.layer.velocity = amount
+            ConfigOption.X_OFFSET -> this.layer.offset = amount
+            ConfigOption.Y_OFFSET ->  this.layer.offset = amount // todo
+            ConfigOption.SPEED ->  println("speed")
+            ConfigOption.IMAGE_TYPE ->  println("imagetype")
+            ConfigOption.SCALE ->  println("scale")
+        }
+    }
+
 }
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickListener {
 
     private lateinit var binding: ActivityMainBinding
-    private var pickedLayer : Int = 1
+    private var pickedLayer : Int = 0
     private val layerManagers : MutableMap<Int, LayerManager> = mutableMapOf()
     private var pageNum = 3
     private val maxSpeed = 50
     private val screenWidth = Resources.getSystem().displayMetrics.widthPixels
     private var maxBackgroundWidthPx = screenWidth * 3
+    private var settingRecyclerViewAdapter: RecyclerViewImgEditAdapter? = null
 
-    private var pickedConfig : ConfigOption? = null
+    // data to populate the RecyclerView and Data with
+    val settingsList = mutableListOf<SettingData>()
+    lateinit var settingVelocity: SettingData
+    lateinit var settingXOffset: SettingData
+    lateinit var settingYOffset: SettingData
+    lateinit var settingScale : SettingData
+    lateinit var settingSpeed : SettingData
+
+//    let, also, apply, with. cool stuff
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.i("__walpMain", "Parallax Wallpaper activity onCreate")
@@ -124,6 +149,33 @@ class MainActivity : AppCompatActivity() {
         layerManagers[0] = LayerManager(0, Layer(), binding.ivSmallBot)
         layerManagers[1] = LayerManager(1, Layer(), binding.ivSmallMid)
         layerManagers[2] = LayerManager(2, Layer(), binding.ivSmallTop)
+
+        // set up the RecyclerView
+        val recyclerView: RecyclerView = findViewById(R.id.rvEditOptions)
+        recyclerView.setLayoutManager(LinearLayoutManager(this))
+        settingRecyclerViewAdapter = RecyclerViewImgEditAdapter(this, settingsList)
+        settingRecyclerViewAdapter?.setClickListener(this)
+        recyclerView.setAdapter(settingRecyclerViewAdapter)
+
+        // this is the fancy schmancy hi-tech wiring between the UI value and the data value!!
+        val updatePickedLayer : (ConfigOption, Int) -> Unit = { option, value ->
+            Log.i("__walpMain", "$option --> $value")
+            layerManagers[pickedLayer]?.setConfigValue(option, value)
+        }
+
+        // init config setting values
+        settingVelocity = SettingData(ConfigOption.VELOCITY, 0, updatePickedLayer)
+        settingXOffset = SettingData(ConfigOption.X_OFFSET, 0, updatePickedLayer)
+        settingYOffset = SettingData(ConfigOption.Y_OFFSET, 0, updatePickedLayer)
+        settingScale = SettingData(ConfigOption.SCALE, 0, updatePickedLayer)
+        settingSpeed = SettingData(ConfigOption.SPEED, 0, updatePickedLayer)
+
+        // let's fill the RecyclerView for now
+        settingsList.add(settingVelocity)
+        settingsList.add(settingXOffset)
+        settingsList.add(settingYOffset)
+        settingsList.add(settingScale)
+        settingsList.add(settingSpeed)
 
         // creating a wide imageView so horizontalScrollView will have a ways to scroll
 //        binding.ivCanvas.layoutParams.width = maxBackgroundWidthPx + screenWidth + 100 // magic. fix later
@@ -170,19 +222,36 @@ class MainActivity : AppCompatActivity() {
         }
         // =============
 
-        binding.sbSpeed.max = maxSpeed
-        binding.sbSpeed.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
-            override fun onStartTrackingTouch(seekBar: SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                val slayer = binding.ivCanvas.getLayer(pickedLayer) ?: return
-                slayer.velocity = binding.sbSpeed.progress * - 1.0
-                binding.ivCanvas.setLayer(pickedLayer, slayer)
-            }
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                binding.tvSpeedValue.text = "$progress"
-                layerManagers[pickedLayer]!!.layer.velocity = progress
-            }
-        })
+//        binding.sbSpeed.max = maxSpeed
+//        binding.sbSpeed.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
+//            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+//            override fun onStopTrackingTouch(seekBar: SeekBar) {
+//                val slayer = binding.ivCanvas.getLayer(pickedLayer) ?: return
+//                slayer.velocity = binding.sbSpeed.progress * - 1.0
+//                binding.ivCanvas.setLayer(pickedLayer, slayer)
+//            }
+//            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+//                binding.tvSpeedValue.text = "$progress"
+//                layerManagers[pickedLayer]!!.layer.velocity = progress
+//            }
+//        })
+//
+//        binding.sbOffset.max = screenWidth // add help note: if you can't find layer, check your offset
+//        binding.sbOffset.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
+//            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+//            override fun onStopTrackingTouch(seekBar: SeekBar) {
+//                val slayer = binding.ivCanvas.getLayer(pickedLayer) ?: return
+//                slayer.offset = binding.sbOffset.progress * 1.0
+//                binding.ivCanvas.setLayer(pickedLayer, slayer)
+//            }
+//            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+//                binding.tvOffsetValue.text = "$progress"
+//                layerManagers[pickedLayer]!!.layer.offset = progress
+//            }
+//        })
+
+//        val offsetView = ConfigOptionSelectorView.create(applicationContext, "offset", "21", null)
+//        binding.linvOptionMenu.addView(offsetView)
 
         binding.sbOffset.max = screenWidth // add help note: if you can't find layer, check your offset
         binding.sbOffset.setOnSeekBarChangeListener ( object: SeekBar.OnSeekBarChangeListener {
@@ -359,6 +428,19 @@ class MainActivity : AppCompatActivity() {
         } finally { inputStream?.close() }
 
         return drawable
+    }
+
+    // select which setting to be expanded for editing
+    override fun onItemClick(view: View?, position: Int) {
+        Log.e("__walpMain", "boohoo!!")
+
+        if (view == null) {
+            return
+        }
+
+        // make the scroll visible
+        val sb = view.findViewById<SeekBar>(R.id.sbSetting)
+        sb.visibility = View.VISIBLE
     }
 
 }

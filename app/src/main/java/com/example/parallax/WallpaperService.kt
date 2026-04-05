@@ -9,8 +9,6 @@ import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.graphics.drawable.AnimatedImageDrawable
-import android.graphics.drawable.Drawable
-import android.net.Uri
 import android.service.wallpaper.WallpaperService
 import android.util.Log
 import android.view.SurfaceHolder
@@ -19,9 +17,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import java.io.FileNotFoundException
-import java.io.InputStream
-import androidx.core.net.toUri
 
 
 class WallpaperService : WallpaperService() {

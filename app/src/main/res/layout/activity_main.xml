@@ -12,13 +12,17 @@
     <com.example.parallax.ParallaxWallpaperView
         android:id="@+id/ivCanvas"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:background="@drawable/transparent"
+        tools:layout_editor_absoluteX="-137dp"
+        tools:layout_editor_absoluteY="33dp" />
 
     <LinearLayout
         android:id="@+id/layoutIvSmall"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -27,7 +31,6 @@
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
             android:contentDescription="@string/select_layer_top"
             app:srcCompat="@drawable/empty_iv" />
 
@@ -36,7 +39,6 @@
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
             android:contentDescription="@string/select_layer_mid"
             app:srcCompat="@drawable/empty_iv" />
 
@@ -45,58 +47,118 @@
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
             android:contentDescription="@string/select_layer_bot"
             app:srcCompat="@drawable/empty_iv" />
 
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/llLayerImage"
+        style="?android:attr/buttonBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutIvSmall">
+
         <Button
             android:id="@+id/btnSelectImage"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
             android:background="@color/design_default_color_primary"
             android:text="@string/select_image"
             app:icon="@android:drawable/ic_menu_gallery"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.092"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/layoutIvSmall" />
 
+        <Button
+            android:id="@+id/btnDeleteImage"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@color/design_default_color_primary"
+            android:text="@string/delete_layer_image"
+            app:icon="@android:drawable/ic_menu_delete"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/layoutIvSmall" />
     </LinearLayout>
 
 
-    <SeekBar
-        android:id="@+id/sbPage"
-        style="@style/Widget.AppCompat.SeekBar.Discrete"
-        android:layout_width="264dp"
-        android:layout_height="26dp"
-        android:layout_marginStart="84dp"
-        android:layout_marginBottom="88dp"
-        android:max="10"
-        android:progress="3"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvEditOptions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/llLayerImage" />
 
     <LinearLayout
         android:id="@+id/linearLayout3"
         android:layout_width="328dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="500dp"
         android:orientation="vertical"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/llLayerImage">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp">
+
+            <TextView
+                android:id="@+id/tvImgTypeLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="type: "
+                android:textColor="@color/white" />
+
+            <LinearLayout
+                android:id="@+id/llImgTypeOptions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_gravity="center_vertical">
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Static"
+                    style="?android:attr/buttonBarButtonStyle"
+                    />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Int Gif"
+                    style="?android:attr/buttonBarButtonStyle"
+                    />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GIF"
+                    style="?android:attr/buttonBarButtonStyle"
+                    />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp">
 
             <TextView
                 android:id="@+id/tvSpeedLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="speed: "
+                android:text="velocity: "
                 android:textColor="@color/white" />
 
             <TextView
@@ -115,7 +177,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp">
 
             <TextView
                 android:id="@+id/tvOffsetLabel"
@@ -143,7 +206,7 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -167,48 +230,111 @@
 
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
+    <SeekBar
+        android:id="@+id/sbPage"
+        style="@style/Widget.AppCompat.SeekBar.Discrete"
+        android:layout_width="264dp"
+        android:layout_height="26dp"
+        android:layout_marginStart="84dp"
+        android:layout_marginBottom="88dp"
+        android:max="10"
+        android:progress="3"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintStart_toStartOf="parent" />
 
-        <!--        name row -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+    <!--    <LinearLayout-->
+<!--        android:id="@+id/linvOptionMenu"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:background="@color/black_transparent_50"-->
+<!--        android:orientation="horizontal"-->
+<!--        android:padding="10dp"-->
+<!--        app:layout_constraintBottom_toBottomOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent">-->
 
-            <TextView
-                android:id="@+id/tvScaleOptionTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Scale"
-                android:textColor="@color/white" />
+<!--        &lt;!&ndash; each item &ndash;&gt;-->
 
-        </LinearLayout>
+<!--        <LinearLayout-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:orientation="vertical">-->
 
-        <!--        icon row -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+<!--            <TextView-->
+<!--                android:id="@+id/tvOffsetOptionTitle"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_margin="5dp"-->
+<!--                android:text="@string/offset"-->
+<!--                android:textAlignment="center"-->
+<!--                android:textColor="@color/white" />-->
 
-            <ImageButton
-                android:id="@+id/scaleOptionIconButton"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:contentDescription="scale"
-                android:src="@drawable/flower" />
+<!--            <FrameLayout-->
+<!--                android:layout_width="64dp"-->
+<!--                android:layout_height="64dp">-->
 
-        </LinearLayout>
+<!--                <ImageButton-->
+<!--                    android:id="@+id/offsetOptionIconButton"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="match_parent"-->
+<!--                    android:contentDescription="@string/offset"-->
+<!--                    android:src="@drawable/flower" />-->
 
-    </LinearLayout>
+<!--                <TextView-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="match_parent"-->
+<!--                    android:gravity="center_horizontal|center_vertical"-->
+<!--                    android:text="0"-->
+<!--                    android:textSize="34sp" />-->
+
+<!--            </FrameLayout>-->
+
+
+<!--        </LinearLayout>-->
+
+<!--        <View-->
+<!--            android:layout_width="1dp"-->
+<!--            android:layout_height="match_parent"-->
+<!--            android:layout_margin="10dp"-->
+<!--            android:background="@android:color/darker_gray" />-->
+
+<!--&lt;!&ndash;        <LinearLayout&ndash;&gt;-->
+<!--&lt;!&ndash;            android:layout_width="wrap_content"&ndash;&gt;-->
+<!--&lt;!&ndash;            android:layout_height="wrap_content"&ndash;&gt;-->
+<!--&lt;!&ndash;            android:orientation="vertical">&ndash;&gt;-->
+
+<!--&lt;!&ndash;            <TextView&ndash;&gt;-->
+<!--&lt;!&ndash;                android:id="@+id/tvVelocityOptionTitle"&ndash;&gt;-->
+<!--&lt;!&ndash;                android:layout_width="match_parent"&ndash;&gt;-->
+<!--&lt;!&ndash;                android:layout_height="wrap_content"&ndash;&gt;-->
+<!--&lt;!&ndash;                android:layout_margin="5dp"&ndash;&gt;-->
+<!--&lt;!&ndash;                android:text="@string/velocity"&ndash;&gt;-->
+<!--&lt;!&ndash;                android:textAlignment="center"&ndash;&gt;-->
+<!--&lt;!&ndash;                android:textColor="@color/white" />&ndash;&gt;-->
+
+<!--&lt;!&ndash;            <FrameLayout&ndash;&gt;-->
+<!--&lt;!&ndash;                android:layout_width="64dp"&ndash;&gt;-->
+<!--&lt;!&ndash;                android:layout_height="64dp">&ndash;&gt;-->
+
+<!--&lt;!&ndash;                <ImageButton&ndash;&gt;-->
+<!--&lt;!&ndash;                    android:id="@+id/velocityOptionIconButton"&ndash;&gt;-->
+<!--&lt;!&ndash;                    android:layout_width="match_parent"&ndash;&gt;-->
+<!--&lt;!&ndash;                    android:layout_height="match_parent"&ndash;&gt;-->
+<!--&lt;!&ndash;                    android:contentDescription="@string/velocity"&ndash;&gt;-->
+<!--&lt;!&ndash;                    android:src="@drawable/flower" />&ndash;&gt;-->
+
+<!--&lt;!&ndash;                <TextView&ndash;&gt;-->
+<!--&lt;!&ndash;                    android:layout_width="match_parent"&ndash;&gt;-->
+<!--&lt;!&ndash;                    android:layout_height="match_parent"&ndash;&gt;-->
+<!--&lt;!&ndash;                    android:gravity="center_horizontal|center_vertical"&ndash;&gt;-->
+<!--&lt;!&ndash;                    android:text="0"&ndash;&gt;-->
+<!--&lt;!&ndash;                    android:textSize="34sp" />&ndash;&gt;-->
+
+<!--&lt;!&ndash;            </FrameLayout>&ndash;&gt;-->
+
+
+<!--&lt;!&ndash;        </LinearLayout>&ndash;&gt;-->
+
+<!--    </LinearLayout>-->
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

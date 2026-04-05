@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.protobuf.kotlin.lite)
     implementation(libs.glide.v4142)
     implementation(libs.appcompat)
+    implementation(libs.androidx.recyclerview)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
