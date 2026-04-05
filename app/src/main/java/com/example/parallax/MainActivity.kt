@@ -33,9 +33,6 @@ import java.io.InputStream
 import androidx.core.net.toUri
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.parallax.SettingData
-import kotlin.properties.Delegates
-import androidx.core.view.isVisible
 
 private const val DATA_STORE_FILE_NAME = "layers.pb"
 
@@ -111,31 +108,41 @@ class LayerManager(
             ConfigOption.X_OFFSET -> this.layer.offset = amount
             ConfigOption.Y_OFFSET ->  this.layer.offset = amount // todo
             ConfigOption.SPEED ->  println("speed")
-            ConfigOption.IMAGE_TYPE ->  println("imagetype")
+            ConfigOption.IMAGE_TYPE ->  println("imageType")
             ConfigOption.SCALE ->  println("scale")
         }
     }
 
+    fun getConfigValue(configOption: ConfigOption) : Int {
+        return when (configOption) {
+            ConfigOption.VELOCITY -> this.layer.velocity
+            ConfigOption.X_OFFSET -> this.layer.offset
+            ConfigOption.Y_OFFSET -> 0
+            ConfigOption.SPEED -> 0
+            ConfigOption.IMAGE_TYPE -> 0
+            ConfigOption.SCALE -> 0
+        }
+    }
 }
 
 class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickListener {
 
     private lateinit var binding: ActivityMainBinding
-    private var pickedLayer : Int = 0
+    private var pickedLayer : Int = 2
     private val layerManagers : MutableMap<Int, LayerManager> = mutableMapOf()
     private var pageNum = 3
     private val maxSpeed = 50
     private val screenWidth = Resources.getSystem().displayMetrics.widthPixels
     private var maxBackgroundWidthPx = screenWidth * 3
-    private var settingRecyclerViewAdapter: RecyclerViewImgEditAdapter? = null
+    private lateinit var settingRecyclerViewAdapter: RecyclerViewImgEditAdapter
 
     // data to populate the RecyclerView and Data with
-    val settingsList = mutableListOf<SettingData>()
-    lateinit var settingVelocity: SettingData
-    lateinit var settingXOffset: SettingData
-    lateinit var settingYOffset: SettingData
-    lateinit var settingScale : SettingData
-    lateinit var settingSpeed : SettingData
+    val settingsList = mutableListOf<ConfigOptionDataUI>()
+    lateinit var settingVelocity: ConfigOptionDataUI
+    lateinit var settingXOffset: ConfigOptionDataUI
+    lateinit var settingYOffset: ConfigOptionDataUI
+    lateinit var settingScale : ConfigOptionDataUI
+    lateinit var settingSpeed : ConfigOptionDataUI
 
 //    let, also, apply, with. cool stuff
 
@@ -151,12 +158,14 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
         layerManagers[1] = LayerManager(1, Layer(), binding.ivSmallMid)
         layerManagers[2] = LayerManager(2, Layer(), binding.ivSmallTop)
 
+        loadAll()
+
         // ============== setting setup ============
         // set up the RecyclerView for settings
         val recyclerView: RecyclerView = findViewById(R.id.rvEditOptions)
         recyclerView.setLayoutManager(LinearLayoutManager(this))
         settingRecyclerViewAdapter = RecyclerViewImgEditAdapter(this, settingsList)
-        settingRecyclerViewAdapter?.setClickListener(this)
+        settingRecyclerViewAdapter.setClickListener(this)
         recyclerView.setAdapter(settingRecyclerViewAdapter)
 
         // this is the fancy schmancy hi-tech wiring between the UI value and the data value!!
@@ -165,12 +174,21 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
             layerManagers[pickedLayer]?.setConfigValue(option, value)
         }
 
+        fun makeSettingData(option: ConfigOption): ConfigOptionDataUI {
+            return ConfigOptionDataUI(
+                option,
+                layerManagers[pickedLayer]!!.getConfigValue(option),
+                updatePickedLayer,
+                settingRecyclerViewAdapter
+            )
+        }
+
         // init config setting values
-        settingVelocity = SettingData(ConfigOption.VELOCITY, 0, updatePickedLayer)
-        settingXOffset = SettingData(ConfigOption.X_OFFSET, 0, updatePickedLayer)
-        settingYOffset = SettingData(ConfigOption.Y_OFFSET, 0, updatePickedLayer)
-        settingScale = SettingData(ConfigOption.SCALE, 0, updatePickedLayer)
-        settingSpeed = SettingData(ConfigOption.SPEED, 0, updatePickedLayer)
+        settingVelocity = makeSettingData(ConfigOption.VELOCITY)
+        settingXOffset = makeSettingData(ConfigOption.X_OFFSET)
+        settingYOffset = makeSettingData(ConfigOption.Y_OFFSET)
+        settingScale = makeSettingData(ConfigOption.SCALE)
+        settingSpeed = makeSettingData(ConfigOption.SPEED)
 
         // let's fill the RecyclerView for now
         settingsList.add(settingVelocity)
@@ -195,14 +213,14 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
             try {
                 iv.setOnClickListener {
                     pickedLayer = index
-                    Log.i("__walpMain", "picked $pickedLayer layer")
-                    binding.tvSpeedValue.text = "${lm.layer.velocity}"
-                    binding.sbSpeed.progress = lm.layer.velocity
-                    binding.sbOffset.progress = lm.layer.offset
+                    Log.i("__walpMain", "picked layer $pickedLayer")
+//                    binding.tvSpeedValue.text = "${lm.layer.velocity}"
+//                    binding.sbSpeed.progress = lm.layer.velocity
+//                    binding.sbOffset.progress = lm.layer.offset
 
-                    // updating settings UI - after loading values, can use them from picked layer
-                    settingVelocity.setSettingValue(layerManagers[pickedLayer]!!.layer.velocity)
-                    settingXOffset.setSettingValue(layerManagers[pickedLayer]!!.layer.offset)
+                    // load values into settings UI
+                    settingVelocity.setSettingValue(lm.layer.velocity)
+                    settingXOffset.setSettingValue(lm.layer.offset)
                     // add the other ones in later
                 }
             } catch (e: Exception) {
@@ -253,8 +271,6 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
 //                Log.i("__walpMain", "current scroll: ${binding.hsvSample.scrollX}")
             }
         })
-
-        loadAll()
 
     }
 

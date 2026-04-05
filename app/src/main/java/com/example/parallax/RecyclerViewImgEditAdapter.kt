@@ -1,48 +1,56 @@
 package com.example.parallax
 
 import android.content.Context
-import android.database.Observable
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.properties.Delegates
-import kotlin.properties.ObservableProperty
 
 // with help from
 // https://dev.to/rdias002/how-to-create-an-expandable-item-in-android-recyclerview-1cja
-class SettingData (
+class ConfigOptionDataUI (
     val option: ConfigOption,
     value: Int = 0,
-    onValueChanged: (ConfigOption, Int) -> Unit
+    private val onValueChanged: (ConfigOption, Int) -> Unit,
+    private val recyclerAdapter: RecyclerViewImgEditAdapter
 ) {
-    var sb: SeekBar? = null
+    var position = -1
 
     // this is the fancy schmancy hi-tech wiring between the UI value and the data value!!
+    // mainActivity value is changed by the change in seekbar value
     var value: Int by Delegates.observable(value) { _, oldValue, newValue ->
         if (oldValue != newValue) {
             onValueChanged(option, newValue)
         }
     }
 
-    // this might call onValueChanged (above), but shouldn't matter
-    // is only ever called once, when loading new layer
-
+    // to be called externally- when loading new layer
     fun setSettingValue(amount: Int) {
-        this.value = amount
-        this.sb?.progress = amount
+        Log.i("__walpMain", "layer: $option at position: $position")
+
+        val isValueChanged = value != amount
+        value = amount
+
+        // update UI
+        if (isValueChanged) {
+            recyclerAdapter.notifyItemChanged(position)
+            Log.i("__walpMain", "change layer $option, value: $value")
+        }
     }
 }
 
 class RecyclerViewImgEditAdapter internal constructor(
     context: Context?,
-    private val mData: MutableList<SettingData>
+    private val mData: MutableList<ConfigOptionDataUI>
 ) : RecyclerView.Adapter<RecyclerViewImgEditAdapter.ViewHolder?>() {
     private val mInflater: LayoutInflater = LayoutInflater.from(context)
     private var mClickListener: ItemClickListener? = null
-    private var expandedItems: ArrayList<SettingData> = arrayListOf()
+    private var expandedItems: ArrayList<ConfigOptionDataUI> = arrayListOf()
 
 
     // inflates the row layout from xml when needed
@@ -53,6 +61,7 @@ class RecyclerViewImgEditAdapter internal constructor(
 
     // binds the data to the TextView in each row
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        mData[position].position = position
         holder.bind(mData[position])
     }
 
@@ -68,6 +77,7 @@ class RecyclerViewImgEditAdapter internal constructor(
         var tvName: TextView = itemView.findViewById(R.id.tvSettingLabel)
         var tvVal: TextView = itemView.findViewById(R.id.tvSettingValue)
         var sb: SeekBar = itemView.findViewById(R.id.sbSetting)
+        var titleBar: LinearLayout = itemView.findViewById(R.id.llSettingTitleBar)
 
         init {
             itemView.setOnClickListener(this)
@@ -77,9 +87,7 @@ class RecyclerViewImgEditAdapter internal constructor(
             if (mClickListener != null) mClickListener!!.onItemClick(view, getAdapterPosition())
         }
 
-        fun bind(setting: SettingData) {
-            setting.sb = sb
-
+        fun bind(setting: ConfigOptionDataUI) {
             tvName.text = setting.option.title
             tvVal.text = "${setting.value}"
             sb.progress = setting.value
@@ -91,7 +99,7 @@ class RecyclerViewImgEditAdapter internal constructor(
                 sb.visibility = View.GONE
             }
 
-            tvName.setOnClickListener {
+            titleBar.setOnClickListener {
                 if (expandedItems.contains(setting)) {
                     expandedItems.remove(setting)
                 } else {
@@ -121,7 +129,7 @@ class RecyclerViewImgEditAdapter internal constructor(
     }
 
     // convenience method for getting data at click position
-    fun getItem(id: Int): SettingData {
+    fun getItem(id: Int): ConfigOptionDataUI {
         return mData[id]
     }
 //    fun getItemValue(id: Int):
