@@ -33,6 +33,7 @@ import java.io.InputStream
 import androidx.core.net.toUri
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.view.isVisible
 
 private const val DATA_STORE_FILE_NAME = "layers.pb"
 
@@ -64,6 +65,10 @@ class LayerManager(
     var layer: Layer,
     var imageViewSmall: ImageButton
 ) {
+
+    fun isEmpty(): Boolean {
+        return this.layer.uri == null
+    }
 
     fun setUriDrawable (uri: Uri, drawable: Drawable?) {
         this.layer.uri = uri
@@ -113,22 +118,17 @@ class LayerManager(
         }
     }
 
-    fun getConfigValue(configOption: ConfigOption) : Int {
-        return when (configOption) {
-            ConfigOption.VELOCITY -> this.layer.velocity
-            ConfigOption.X_OFFSET -> this.layer.offset
-            ConfigOption.Y_OFFSET -> 0
-            ConfigOption.SPEED -> 0
-            ConfigOption.IMAGE_TYPE -> 0
-            ConfigOption.SCALE -> 0
-        }
+    fun removeImage() {
+        layer.drawable = null
+        layer.uri = null
+        updateUIElementImages()
     }
 }
 
 class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickListener {
 
     private lateinit var binding: ActivityMainBinding
-    private var pickedLayer : Int = 2
+    private var pickedLayer : Int = -1
     private val layerManagers : MutableMap<Int, LayerManager> = mutableMapOf()
     private var pageNum = 3
     private val maxSpeed = 50
@@ -170,14 +170,15 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
 
         // this is the fancy schmancy hi-tech wiring between the UI value and the data value!!
         val updatePickedLayer : (ConfigOption, Int) -> Unit = { option, value ->
-            Log.i("__walpMain", "$option --> $value")
+//            Log.i("__walpMain", "$option --> $value")
             layerManagers[pickedLayer]?.setConfigValue(option, value)
         }
 
         fun makeSettingData(option: ConfigOption): ConfigOptionDataUI {
             return ConfigOptionDataUI(
                 option,
-                layerManagers[pickedLayer]!!.getConfigValue(option),
+//                layerManagers[pickedLayer]!!.getConfigValue(option),
+                0,
                 updatePickedLayer,
                 settingRecyclerViewAdapter
             )
@@ -207,12 +208,34 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
 //            layerManagers[index] = LayerManager(index, Layer(), ivSmall, ivBig)
 //        }
 
+        val imgSettingView = binding.llLayerImage
+        val imgTypeSelectorView = binding.rgImageTypeSelector
+
         for (index in (0..<binding.layoutIvSmall.childCount)) {
             val iv = binding.layoutIvSmall[binding.layoutIvSmall.childCount - 1 - index] // haha this is so flimsy maybe i should not loop
             val lm = layerManagers[index] ?: continue
             try {
                 iv.setOnClickListener {
+                    // toggle logic
+                    if (pickedLayer == index) {
+                        imgSettingView.visibility = if (imgSettingView.isVisible) View.INVISIBLE else View.VISIBLE
+                        if (!lm.isEmpty()) {
+                            imgTypeSelectorView.visibility = imgSettingView.visibility
+                            recyclerView.visibility = imgSettingView.visibility
+                        }
+                    } else {
+                        imgSettingView.visibility = View.VISIBLE
+                        if (!lm.isEmpty()) {
+                            imgTypeSelectorView.visibility = View.VISIBLE
+                            recyclerView.visibility = View.VISIBLE
+                        } else {
+                            imgTypeSelectorView.visibility = View.INVISIBLE
+                            recyclerView.visibility = View.INVISIBLE
+                        }
+                    }
+
                     pickedLayer = index
+
                     Log.i("__walpMain", "picked layer $pickedLayer")
 //                    binding.tvSpeedValue.text = "${lm.layer.velocity}"
 //                    binding.sbSpeed.progress = lm.layer.velocity
@@ -227,6 +250,12 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
                 e.printStackTrace()
             }
 
+        }
+
+        binding.btnDeleteImage.setOnClickListener {
+            layerManagers[pickedLayer]?.removeImage()
+            binding.rgImageTypeSelector.visibility = View.INVISIBLE
+            binding.rvEditOptions.visibility = View.INVISIBLE
         }
 
         binding.btnClearAllLayers.setOnClickListener {
@@ -355,8 +384,8 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
             lm.updateUIElementImages()
         }
         binding.sbPage.progress = 0
-        binding.sbSpeed.progress = 0
-        binding.sbOffset.progress = 0
+//        binding.sbSpeed.progress = 0
+//        binding.sbOffset.progress = 0
 
         binding.ivCanvas.clear()
     }
@@ -383,6 +412,14 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
         )
         if (serviceLayer != null) {
             binding.ivCanvas.setLayer(layer.level, serviceLayer)
+        }
+
+        layerManagers[pickedLayer]?.isEmpty()?.let {
+            Log.i("__walpMain", "layer $pickedLayer is empty? $it")
+            if (!it) {
+                binding.rgImageTypeSelector.visibility = View.VISIBLE
+                binding.rvEditOptions.visibility = View.VISIBLE
+            }
         }
     }
 

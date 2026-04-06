@@ -31,15 +31,11 @@ class ConfigOptionDataUI (
 
     // to be called externally- when loading new layer
     fun setSettingValue(amount: Int) {
-        Log.i("__walpMain", "layer: $option at position: $position")
-
         val isValueChanged = value != amount
         value = amount
 
-        // update UI
-        if (isValueChanged) {
+        if (isValueChanged) { // update UI
             recyclerAdapter.notifyItemChanged(position)
-            Log.i("__walpMain", "change layer $option, value: $value")
         }
     }
 }
