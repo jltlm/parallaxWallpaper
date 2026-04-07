@@ -40,7 +40,7 @@
             android:layout_height="64dp"
             android:layout_marginStart="16dp"
             android:contentDescription="@string/select_layer_mid"
-            app:srcCompat="@drawable/empty_iv" />
+            app:srcCompat="@drawable/empty_iv"  />
 
         <ImageButton
             android:id="@+id/ivSmallBot"
@@ -105,19 +105,19 @@
                 android:id="@+id/rbStatic"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Static" />
+                android:text="@string/imageTypeStatic" />
 
             <RadioButton
                 android:id="@+id/rbIntGif"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Interactive GIF" />
+                android:text="@string/imageTypeInteractiveGif" />
 
             <RadioButton
                 android:id="@+id/rbGif"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="GIF" />
+                android:text="@string/imageTypeGif" />
         </RadioGroup>
 
         <androidx.recyclerview.widget.RecyclerView

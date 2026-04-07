@@ -12,4 +12,7 @@
     <string name="velocity">Velocity</string>
     <string name="offset">Offset</string>
     <string name="zero">0</string>
+    <string name="imageTypeStatic">Static</string>
+    <string name="imageTypeInteractiveGif">Interactive Gif</string>
+    <string name="imageTypeGif">Gif</string>
 </resources>

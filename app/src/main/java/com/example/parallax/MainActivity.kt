@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.ImageButton
+import android.widget.RadioButton
 import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -44,11 +45,11 @@ val Context.layerDataStore: DataStore<LayerListDO> by dataStore(
 
 class Layer(uri: String = "", velocity: Int = 0, offset: Int = 0, drawable: Drawable? = null, imageType: ImageType = ImageType.BITMAP) {
 
-    var uri: Uri? = null
     var drawable: Drawable? = null
+    var imageType: ImageType = ImageType.BITMAP
+    var uri: Uri? = null
     var velocity: Int = 1
     var offset: Int = 0
-    var imageType: ImageType = ImageType.BITMAP
 
     init {
         this.uri = if (uri == "") null else uri.toUri()
@@ -244,10 +245,29 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
                     // load values into settings UI
                     settingVelocity.setSettingValue(lm.layer.velocity)
                     settingXOffset.setSettingValue(lm.layer.offset)
+
                     // add the other ones in later
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+
+        }
+
+        binding.rgImageTypeSelector.setOnCheckedChangeListener { group, checkedId ->
+            if (checkedId != -1) {
+                val selectedRadioButton = findViewById<RadioButton>(checkedId)
+                val text = selectedRadioButton.text
+                println("Selected: $text")
+                when (text) {
+                    resources.getString(R.string.imageTypeStatic) -> layerManagers[pickedLayer]?.layer?.imageType = ImageType.BITMAP
+                    resources.getString(R.string.imageTypeInteractiveGif) -> layerManagers[pickedLayer]?.layer?.imageType = ImageType.INTERACTIVE_GIF
+                    resources.getString(R.string.imageTypeGif) -> layerManagers[pickedLayer]?.layer?.imageType = ImageType.CONTINUOUS_GIF
+                    else -> layerManagers[pickedLayer]?.layer?.imageType = ImageType.BITMAP
+                }
+            } else {
+                // No radio button is selected (e.g., after clearCheck())
+                layerManagers[pickedLayer]?.layer?.imageType = ImageType.BITMAP
             }
 
         }
