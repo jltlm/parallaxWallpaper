@@ -55,8 +55,9 @@ class LayerManager(
         this.layer.img = img
     }
 
-    fun setImageType (imageType: ImageType) {
+    fun setImageType (imageType: ImageType, img: ParallaxImg) {
         this.layer.imageType = imageType
+        this.layer.img = img
     }
 
     fun clearLayer() {
@@ -190,7 +191,7 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
 
                         // as visible as the img setter if there is an img selected for the layer, else invisible
                         binding.llLayerConfigs.visibility = if (!lm.isEmpty()) binding.llLayerImage.visibility else View.INVISIBLE
-                        Log.i("__walpMain", "$pickedLayer - is empty:${lm.isEmpty()}, and imgtype=${lm.layer.imageType} so config visibility is ${binding.llLayerConfigs.visibility}")
+                        Log.i("__walpMain", "$pickedLayer - is empty:${lm.isEmpty()}, and imgType=${lm.layer.imageType} so config visibility is ${binding.llLayerConfigs.visibility}")
                     } else { // if opening a new layer's settings, make visible
                         binding.llLayerImage.visibility = View.VISIBLE
 
@@ -218,31 +219,42 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
         }
 
         binding.rgImageTypeSelector.setOnCheckedChangeListener { _, checkedId ->
+
+            if (pickedLayer == -1) {
+                return@setOnCheckedChangeListener
+            }
             val lm = layerManagers[pickedLayer]!!
+
             if (checkedId != -1) {
                 val selectedRadioButton = findViewById<RadioButton>(checkedId)
                 val text = selectedRadioButton.text
                 println("Selected: $text")
-                when (text) {
-                    resources.getString(R.string.imageTypeStatic) -> lm.setImageType(ImageType.BITMAP)
-                    resources.getString(R.string.imageTypeInteractiveGif) -> lm.setImageType(ImageType.INTERACTIVE_GIF)
-                    resources.getString(R.string.imageTypeGif) -> lm.setImageType(ImageType.CONTINUOUS_GIF)
-                    else -> lm.setImageType(ImageType.BITMAP)
+
+                val toImageType = when (text) {
+                    resources.getString(R.string.imageTypeStatic) -> ImageType.BITMAP
+                    resources.getString(R.string.imageTypeInteractiveGif) -> ImageType.INTERACTIVE_GIF
+                    resources.getString(R.string.imageTypeGif) -> ImageType.CONTINUOUS_GIF
+                    else -> ImageType.BITMAP
                 }
+
+                lm.setImageType(toImageType, ParallaxLayer.getImageFromUri(applicationContext, lm.layer.uri.toUri(), toImageType))
 
                 // update UI sample parallax wallpaper
                 binding.ivCanvas.setLayerValues(lm.level, lm.layer)
             } else {
                 // No radio button is selected (e.g., after clearCheck())
-                lm.setImageType(ImageType.BITMAP)
+                lm.setImageType(ImageType.BITMAP, ParallaxImg.Empty())
             }
 
         }
 
         binding.btnDeleteImage.setOnClickListener {
-            layerManagers[pickedLayer]?.clearLayer()
-            binding.rgImageTypeSelector.visibility = View.INVISIBLE
-            binding.rvEditOptions.visibility = View.INVISIBLE
+            val lm = layerManagers[pickedLayer] ?: return@setOnClickListener
+            lm.clearLayer()
+
+            binding.ivCanvas.clearLayer(lm.level)
+
+            binding.llLayerConfigs.visibility = View.INVISIBLE
         }
 
         binding.btnClearAllLayers.setOnClickListener {
@@ -385,8 +397,9 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
         // updating UI background sample wallpaper
         binding.ivCanvas.setLayer(lm.level, lm.layer)
 
+        binding.llLayerConfigs.visibility = View.VISIBLE
         if (!lm.isEmpty()) {
-            binding.llLayerConfigs.visibility = View.VISIBLE
+            Log.i("__walpMain", "apparently, layer is not empty. uri: ${lm.layer.uri}")
         }
     }
 

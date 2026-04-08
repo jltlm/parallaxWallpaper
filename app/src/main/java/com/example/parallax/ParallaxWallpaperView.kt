@@ -66,6 +66,10 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
 
     fun setLayer(level: Int, layer: ParallaxLayer) {
         layers[level] = layer
+        if (layer.img.img is ParallaxImg.AnimatedGif) {
+            (layer.img.img as AnimatedImageDrawable).start()
+        }
+
         draw()
     }
 
@@ -75,6 +79,18 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
             layers[level]!!.copyLayerValues(layer)
         }
 
+        val layerImg = layers[level]!!.img
+        if (layerImg.img is AnimatedImageDrawable) {
+            (layerImg.img as AnimatedImageDrawable).start()
+            Log.i("__walpUIView", "layer is animated ${layer.imageType.name} - layer $level")
+        }
+        Log.i("__walpUIView", "layer is ${layer.imageType.name} - layer $level")
+
+        draw()
+    }
+
+    fun clearLayer(level: Int) {
+        layers.remove(level)
         draw()
     }
 
