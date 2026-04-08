@@ -7,8 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
-import android.graphics.drawable.AnimatedImageDrawable
-import android.graphics.drawable.Drawable
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -29,8 +28,6 @@ import com.example.parallax.databinding.ActivityMainBinding
 import com.example.parallax.datastore.LayerDO
 import com.example.parallax.datastore.LayerListDO
 import kotlinx.coroutines.launch
-import java.io.FileNotFoundException
-import java.io.InputStream
 import androidx.core.net.toUri
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -43,37 +40,19 @@ val Context.layerDataStore: DataStore<LayerListDO> by dataStore(
     serializer = LayerListDOSerializer
 )
 
-class Layer(uri: String = "", velocity: Int = 0, offset: Int = 0, drawable: Drawable? = null, imageType: ImageType = ImageType.BITMAP) {
-
-    var drawable: Drawable? = null
-    var imageType: ImageType = ImageType.BITMAP
-    var uri: Uri? = null
-    var velocity: Int = 1
-    var offset: Int = 0
-
-    init {
-        this.uri = if (uri == "") null else uri.toUri()
-        this.imageType = imageType
-        this.drawable = drawable
-        this.velocity = velocity
-        this.offset = offset
-    }
-
-}
-
 class LayerManager(
     val level: Int,
-    var layer: Layer,
+    var layer: ParallaxLayer,
     var imageViewSmall: ImageButton
 ) {
 
     fun isEmpty(): Boolean {
-        return this.layer.uri == null
+        return this.layer.img == ParallaxImg.Empty() || this.layer.uri == ""
     }
 
-    fun setUriDrawable (uri: Uri, drawable: Drawable?) {
-        this.layer.uri = uri
-        this.layer.drawable = drawable
+    fun setUriServiceImg (uri: Uri, img: ParallaxImg) {
+        this.layer.uri = uri.toString()
+        this.layer.img = img
     }
 
     fun setImageType (imageType: ImageType) {
@@ -81,48 +60,39 @@ class LayerManager(
     }
 
     fun clearLayer() {
-        this.layer.velocity = 1 // hehe
-        this.layer.offset = 0
-        this.layer.uri = null
+        this.layer.velocity = 0.0
+        this.layer.offset = 0.0
+        this.layer.uri = ""
         this.layer.imageType = ImageType.BITMAP
-        this.layer.drawable = null
+        this.layer.img = ParallaxImg.Empty()
+        updateUIElementImages()
     }
 
-    fun loadLayer(l: Layer) {
+    fun loadLayer(l: ParallaxLayer) {
         this.layer = l
     }
 
     fun updateUIElementImages() {
-        if (this.layer.drawable == null) {
-            imageViewSmall.setImageBitmap(null)
-            return
+        when (this.layer.img) {
+            is ParallaxImg.Empty -> {
+                imageViewSmall.setImageBitmap(null)
+            }
+            else -> { // AnimatedGif, InteractiveGif, StaticBitmap, Error. less movement for more energy saving!
+                val img = (this.layer.img.img as Bitmap)
+                imageViewSmall.setImageBitmap(img)
+            }
         }
-        if (this.layer.drawable is AnimatedImageDrawable) {
-            (this.layer.drawable as AnimatedImageDrawable).start()
-            this.layer.imageType = ImageType.CONTINUOUS_GIF
-        }
-
-        val dr = this.layer.drawable!!
-
-        imageViewSmall.setImageDrawable(dr)
-
     }
 
-    fun setConfigValue(configOption: ConfigOption, amount: Int) {
+    fun setConfigValue(configOption: ConfigOption, amount: Double) {
         when (configOption) {
-            ConfigOption.VELOCITY -> this.layer.velocity = amount
-            ConfigOption.X_OFFSET -> this.layer.offset = amount
-            ConfigOption.Y_OFFSET ->  this.layer.offset = amount // todo
+            ConfigOption.VELOCITY -> this.layer.velocity = amount * 1.0
+            ConfigOption.X_OFFSET -> this.layer.offset = amount * 1.0
+            ConfigOption.Y_OFFSET ->  println("offset y")
             ConfigOption.SPEED ->  println("speed")
             ConfigOption.IMAGE_TYPE ->  println("imageType")
             ConfigOption.SCALE ->  println("scale")
         }
-    }
-
-    fun removeImage() {
-        layer.drawable = null
-        layer.uri = null
-        updateUIElementImages()
     }
 }
 
@@ -132,7 +102,7 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
     private var pickedLayer : Int = -1
     private val layerManagers : MutableMap<Int, LayerManager> = mutableMapOf()
     private var pageNum = 3
-    private val maxSpeed = 50
+//    private val maxSpeed = 50
     private val screenWidth = Resources.getSystem().displayMetrics.widthPixels
     private var maxBackgroundWidthPx = screenWidth * 3
     private lateinit var settingRecyclerViewAdapter: RecyclerViewImgEditAdapter
@@ -155,9 +125,9 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
         setContentView(binding.root)
 
         // gonna want a loop for this later or something
-        layerManagers[0] = LayerManager(0, Layer(), binding.ivSmallBot)
-        layerManagers[1] = LayerManager(1, Layer(), binding.ivSmallMid)
-        layerManagers[2] = LayerManager(2, Layer(), binding.ivSmallTop)
+        layerManagers[0] = LayerManager(0, ParallaxLayer.create(applicationContext), binding.ivSmallBot)
+        layerManagers[1] = LayerManager(1, ParallaxLayer.create(applicationContext), binding.ivSmallMid)
+        layerManagers[2] = LayerManager(2, ParallaxLayer.create(applicationContext), binding.ivSmallTop)
 
         loadAll()
 
@@ -170,7 +140,7 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
         recyclerView.setAdapter(settingRecyclerViewAdapter)
 
         // this is the fancy schmancy hi-tech wiring between the UI value and the data value!!
-        val updatePickedLayer : (ConfigOption, Int) -> Unit = { option, value ->
+        val updatePickedLayer : (ConfigOption, Double) -> Unit = { option, value ->
 //            Log.i("__walpMain", "$option --> $value")
             layerManagers[pickedLayer]?.setConfigValue(option, value)
         }
@@ -179,7 +149,7 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
             return ConfigOptionDataUI(
                 option,
 //                layerManagers[pickedLayer]!!.getConfigValue(option),
-                0,
+                0.0,
                 updatePickedLayer,
                 settingRecyclerViewAdapter
             )
@@ -209,30 +179,23 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
 //            layerManagers[index] = LayerManager(index, Layer(), ivSmall, ivBig)
 //        }
 
-        val imgSettingView = binding.llLayerImage
-        val imgTypeSelectorView = binding.rgImageTypeSelector
-
         for (index in (0..<binding.layoutIvSmall.childCount)) {
             val iv = binding.layoutIvSmall[binding.layoutIvSmall.childCount - 1 - index] // haha this is so flimsy maybe i should not loop
             val lm = layerManagers[index] ?: continue
             try {
                 iv.setOnClickListener {
                     // toggle logic
-                    if (pickedLayer == index) {
-                        imgSettingView.visibility = if (imgSettingView.isVisible) View.INVISIBLE else View.VISIBLE
-                        if (!lm.isEmpty()) {
-                            imgTypeSelectorView.visibility = imgSettingView.visibility
-                            recyclerView.visibility = imgSettingView.visibility
-                        }
-                    } else {
-                        imgSettingView.visibility = View.VISIBLE
-                        if (!lm.isEmpty()) {
-                            imgTypeSelectorView.visibility = View.VISIBLE
-                            recyclerView.visibility = View.VISIBLE
-                        } else {
-                            imgTypeSelectorView.visibility = View.INVISIBLE
-                            recyclerView.visibility = View.INVISIBLE
-                        }
+                    if (pickedLayer == index) { // if clicking the same layer as selected, toggle
+                        binding.llLayerImage.visibility = if (binding.llLayerImage.isVisible) View.INVISIBLE else View.VISIBLE
+
+                        // as visible as the img setter if there is an img selected for the layer, else invisible
+                        binding.llLayerConfigs.visibility = if (!lm.isEmpty()) binding.llLayerImage.visibility else View.INVISIBLE
+                        Log.i("__walpMain", "$pickedLayer - is empty:${lm.isEmpty()}, and imgtype=${lm.layer.imageType} so config visibility is ${binding.llLayerConfigs.visibility}")
+                    } else { // if opening a new layer's settings, make visible
+                        binding.llLayerImage.visibility = View.VISIBLE
+
+                        // visible if there is an img selected for the layer, else invisible
+                        binding.llLayerConfigs.visibility = if (!lm.isEmpty()) View.VISIBLE else View.INVISIBLE
                     }
 
                     pickedLayer = index
@@ -254,26 +217,30 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
 
         }
 
-        binding.rgImageTypeSelector.setOnCheckedChangeListener { group, checkedId ->
+        binding.rgImageTypeSelector.setOnCheckedChangeListener { _, checkedId ->
+            val lm = layerManagers[pickedLayer]!!
             if (checkedId != -1) {
                 val selectedRadioButton = findViewById<RadioButton>(checkedId)
                 val text = selectedRadioButton.text
                 println("Selected: $text")
                 when (text) {
-                    resources.getString(R.string.imageTypeStatic) -> layerManagers[pickedLayer]?.layer?.imageType = ImageType.BITMAP
-                    resources.getString(R.string.imageTypeInteractiveGif) -> layerManagers[pickedLayer]?.layer?.imageType = ImageType.INTERACTIVE_GIF
-                    resources.getString(R.string.imageTypeGif) -> layerManagers[pickedLayer]?.layer?.imageType = ImageType.CONTINUOUS_GIF
-                    else -> layerManagers[pickedLayer]?.layer?.imageType = ImageType.BITMAP
+                    resources.getString(R.string.imageTypeStatic) -> lm.setImageType(ImageType.BITMAP)
+                    resources.getString(R.string.imageTypeInteractiveGif) -> lm.setImageType(ImageType.INTERACTIVE_GIF)
+                    resources.getString(R.string.imageTypeGif) -> lm.setImageType(ImageType.CONTINUOUS_GIF)
+                    else -> lm.setImageType(ImageType.BITMAP)
                 }
+
+                // update UI sample parallax wallpaper
+                binding.ivCanvas.setLayerValues(lm.level, lm.layer)
             } else {
                 // No radio button is selected (e.g., after clearCheck())
-                layerManagers[pickedLayer]?.layer?.imageType = ImageType.BITMAP
+                lm.setImageType(ImageType.BITMAP)
             }
 
         }
 
         binding.btnDeleteImage.setOnClickListener {
-            layerManagers[pickedLayer]?.removeImage()
+            layerManagers[pickedLayer]?.clearLayer()
             binding.rgImageTypeSelector.visibility = View.INVISIBLE
             binding.rvEditOptions.visibility = View.INVISIBLE
         }
@@ -317,7 +284,6 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
                 if (fromUser) {
                     binding.ivCanvas.draw(progress * maxBackgroundWidthPx / pageNum)
                 }
-//                Log.i("__walpMain", "current scroll: ${binding.hsvSample.scrollX}")
             }
         })
 
@@ -332,35 +298,29 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
         lifecycleScope.launch {
             LayerRepository.getLayerFlow(applicationContext).collect { layerDOs: List<LayerDO> ->
                 Log.d("__walpMain", "loading ${layerDOs.size} layers from repo")
-                val serviceLayers = mutableMapOf<Int, ServiceLayer>()
+                val layers = mutableMapOf<Int, ParallaxLayer>()
                 for (layerDO in layerDOs) {
                     val uri = layerDO.uri.toUri()
                     Log.i("__walpMain", "loading ${layerDO.level}: vel:${layerDO.velocity} offset:${layerDO.offset} type:${layerDO.imageType}")
 
-                    // create new layer
-                    val l = Layer(
-                        uri = layerDO.uri,
-                        velocity = layerDO.velocity,
-                        offset = layerDO.offset,
-                        imageType = ImageType.fromInt(layerDO.imageType))
-
-                    // add layer to layerManagers
-                    val lm = layerManagers[layerDO.level]
-                    lm?.loadLayer(l)
-
                     // updating UI
-                    val serviceLayer = ServiceLayer.create(
+                    val layer = ParallaxLayer.create(
                         context = applicationContext,
                         uriString = layerDO.uri,
                         imageType = layerDO.imageType,
-                        velocity = layerDO.velocity,
-                        offset = layerDO.offset
-                    ) ?: continue
-                    serviceLayers[layerDO.level] = serviceLayer
-                    lm?.setUriDrawable(uri, drawableFromUri(uri))
+                        velocity = layerDO.velocity.toDouble(),
+                        offset = layerDO.offset.toDouble()
+                    )
+
+                    // add layer to layerManagers
+                    val lm = layerManagers[layerDO.level]
+                    lm?.loadLayer(layer)
+
+                    layers[layerDO.level] = layer
+                    lm?.setUriServiceImg(uri, ParallaxLayer.getImageFromUri(applicationContext, uri, ImageType.BITMAP))
                     lm?.updateUIElementImages()
                 }
-                binding.ivCanvas.setLayers(serviceLayers)
+                binding.ivCanvas.setLayers(layers)
             }
         }
     }
@@ -370,38 +330,33 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
      */
     private fun saveAll() {
         lifecycleScope.launch {
-            Log.i("__walpMain", "saving settings")
-
             LayerRepository.clearLayers(applicationContext)
 
             for ((_, lm) in layerManagers) {
                 val l = lm.layer
-                if (l.uri == null) { continue }
-
                 Log.i("__walpMain", "saving ${lm.level}: vel:${l.velocity} offset:${l.offset} type:${l.imageType.value}")
 
                 LayerRepository.addLayer(
                     applicationContext,
                     lm.level,
-                    l.uri.toString(),
+                    l.uri,
                     l.imageType.value,
-                    l.velocity,
-                    l.offset
+                    l.velocity.toInt(),
+                    l.offset.toInt()
                 )
             }
         }
     }
 
     private fun clearAll() {
-        lifecycleScope.launch {
-            Log.i("__walpMain", "clearing layers")
-            LayerRepository.clearLayers(applicationContext)
-        }
+//        lifecycleScope.launch {
+//            Log.i("__walpMain", "clearing layers")
+//            LayerRepository.clearLayers(applicationContext)
+//        }
         for ((_, lm) in layerManagers) {
             val l = lm.layer
-            if (l.uri == null) { continue }
+            if (l.img == ParallaxImg.Empty()) { continue }
             lm.clearLayer()
-            lm.updateUIElementImages()
         }
         binding.sbPage.progress = 0
 //        binding.sbSpeed.progress = 0
@@ -420,62 +375,22 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
 
     private fun selectImage(uri: Uri) {
         Log.i("__walpMain", uri.toString())
+        val img = ParallaxLayer.getImageFromUri(applicationContext, uri, ImageType.BITMAP)
 
-        val layer: LayerManager = layerManagers[pickedLayer]!!
-        layer.setUriDrawable(uri, drawableFromUri(uri))
-        layerManagers[pickedLayer]!!.layer.velocity = 0 // if new image picked, set to 0
-        layer.updateUIElementImages()
+        val lm: LayerManager = layerManagers[pickedLayer]!!
+        lm.clearLayer()
+        lm.setUriServiceImg(uri, img)
+        lm.updateUIElementImages()
 
-        // updating UI
-        val serviceLayer = ServiceLayer.create(
-            applicationContext,layer.layer.uri.toString(), layer.layer.imageType.value, layer.layer.velocity, layer.layer.offset
-        )
-        if (serviceLayer != null) {
-            binding.ivCanvas.setLayer(layer.level, serviceLayer)
+        // updating UI background sample wallpaper
+        binding.ivCanvas.setLayer(lm.level, lm.layer)
+
+        if (!lm.isEmpty()) {
+            binding.llLayerConfigs.visibility = View.VISIBLE
         }
-
-        layerManagers[pickedLayer]?.isEmpty()?.let {
-            Log.i("__walpMain", "layer $pickedLayer is empty? $it")
-            if (!it) {
-                binding.rgImageTypeSelector.visibility = View.VISIBLE
-                binding.rvEditOptions.visibility = View.VISIBLE
-            }
-        }
-    }
-
-    /**
-     * returns a bitmap from uri
-     */
-//    private fun bitmapFromUri(uri: Uri) : Bitmap {
-//        val source = ImageDecoder.createSource(this.contentResolver, uri)
-//        return ImageDecoder.decodeBitmap(source)
-//    }
-
-    private fun drawableFromUri(uri: Uri) : Drawable? {
-        var drawable: Drawable? = null
-        var inputStream: InputStream? = null
-        try {
-            inputStream = applicationContext.contentResolver.openInputStream(uri)
-            drawable = Drawable.createFromStream(inputStream, uri.toString())
-        } catch (e: FileNotFoundException) {
-            e.printStackTrace()
-            Log.e("__walpMain", "can't find drawable $uri")
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Log.e("__walpMain", "convert from uri exception $uri")
-        } finally { inputStream?.close() }
-
-        return drawable
     }
 
     // select which setting to be expanded for editing
-    override fun onItemClick(view: View?, position: Int) {
-        if (view == null) { return }
-
-//        // make the scroll visible
-//        val sb = view.findViewById<SeekBar>(R.id.sbSetting)
-//        sb.visibility = if (sb.isVisible) View.GONE else View.VISIBLE
-//        sb.visibility = View.VISIBLE
-    }
+    override fun onItemClick(view: View?, position: Int) { }
 
 }

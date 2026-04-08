@@ -25,7 +25,7 @@ class WallpaperService : WallpaperService() {
         private val job = SupervisorJob()
         private val scope = CoroutineScope(Dispatchers.IO + job)
         private var flower: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resources, R.drawable.flower))
-        private var layers: MutableList<ServiceLayer> = MutableList(0) { ServiceLayer(ServiceImg.StaticBitmap(flower), ImageType.BITMAP) }
+        private var layers: MutableList<ParallaxLayer> = MutableList(0) { ParallaxLayer(ParallaxImg.StaticBitmap(flower)) }
         private val paint = Paint()
 
 //        private var nyan: Drawable = ImageDecoder.decodeDrawable(ImageDecoder.createSource(resources, R.drawable.chalk_animation))
@@ -36,7 +36,7 @@ class WallpaperService : WallpaperService() {
             job.cancel()
             for (l in layers) {
                 val img = l.img
-                if (img is ServiceImg.AnimatedGif) (img.img).stop()
+                if (img is ParallaxImg.AnimatedGif) (img.img).stop()
             }
 
             Log.e("__walpService", "bye bye")
@@ -55,18 +55,11 @@ class WallpaperService : WallpaperService() {
                     Log.d("__walpService", "num layers: ${layerDOs.size}")
                     layers.clear() // first- remove existing layers
                     for (layerDO in layerDOs) {
-//                        val img = getImageFromUri(
-//                            layerDO.uri.toUri(),
-//                            ImageType.fromInt(layerDO.imageType)
-//                        ) ?: continue // if we can't get the image just skip it
-
-                        val l = ServiceLayer.create(applicationContext, layerDO.uri, layerDO.imageType, layerDO.velocity, layerDO.offset) ?: continue
-
-//                        val l = ServiceLayer(img, ImageType.fromInt(layerDO.imageType), layerDO.uri, layerDO.velocity, layerDO.offset)
+                        val l = ParallaxLayer.create(applicationContext, layerDO.uri, layerDO.imageType, layerDO.velocity*1.0, layerDO.offset*1.0)
                         layers.add(l)
 
                         val img = l.img
-                        if (img is ServiceImg.AnimatedGif) {
+                        if (img is ParallaxImg.AnimatedGif) {
                             img.img.start()
                         }
 
@@ -103,13 +96,13 @@ class WallpaperService : WallpaperService() {
                         val pos = ((offset * canvas.width) * (layer.velocity / 5.0) - layer.offset).toInt() // canvas width is the multiplier
 
                         when (layer.img) {
-                            is ServiceImg.AnimatedGif -> {
+                            is ParallaxImg.AnimatedGif -> {
                                 val layerImg = (layer.img.img as AnimatedImageDrawable)
                                 layerImg.setBounds(pos, 0, pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(), canvas.height)
                                 layerImg.draw(canvas)
                             }
 
-                            is ServiceImg.InteractiveGif -> {
+                            is ParallaxImg.InteractiveGif -> {
                                 val layerImg = (layer.img.img as AnimationFrameHolder)
                                 val bm = layerImg.getNextFrame()
                                 val destRect = Rect(0, 0, canvas.width, canvas.height)
@@ -117,7 +110,7 @@ class WallpaperService : WallpaperService() {
                                 canvas.drawBitmap(bm, srcRect, destRect, paint)
                             }
 
-                            is ServiceImg.StaticBitmap -> {
+                            is ParallaxImg.StaticBitmap -> {
                                 val bm = (layer.img.img as Bitmap)
                                 val destRect = Rect(0, 0, canvas.width, canvas.height)
                                 val srcRect = Rect(pos * bm.height / canvas.height, 0, pos * bm.height / canvas.height + (bm.height * canvasRatio).toInt(), bm.height)
@@ -125,7 +118,8 @@ class WallpaperService : WallpaperService() {
 
                             }
 
-                            is ServiceImg.Empty -> {} // well, we don't care
+                            is ParallaxImg.Empty -> {} // well, we don't care
+                            is ParallaxImg.Error -> {} // and bad images would also be invisible
                         }
                     }
 
@@ -168,12 +162,12 @@ class WallpaperService : WallpaperService() {
                     // if the problems are that bad, just kill the engine...
 //                    l.img = getDrawableFromUri(Uri.parse(l.uri), l.imageType) ?: continue
                     val img = l.img
-                    if (img is ServiceImg.AnimatedGif) (img.img).start()
+                    if (img is ParallaxImg.AnimatedGif) (img.img).start()
                 }
             } else {
                 for (l in layers) {
                     val img = l.img
-                    if (img is ServiceImg.AnimatedGif) (img.img).stop()
+                    if (img is ParallaxImg.AnimatedGif) (img.img).stop()
 //                    l.img = ServiceImg.Empty()
                 }
             }

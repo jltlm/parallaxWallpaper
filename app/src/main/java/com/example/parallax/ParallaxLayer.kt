@@ -13,18 +13,19 @@ import androidx.core.net.toUri
 import java.io.FileNotFoundException
 import java.io.InputStream
 
-sealed class ServiceImg {
+sealed class ParallaxImg {
     abstract val img: Any
 
-    class Empty(override val img: Drawable = Color.TRANSPARENT.toDrawable()) : ServiceImg()
-    class StaticBitmap(override val img: Bitmap) : ServiceImg()
-    class AnimatedGif(override val img: AnimatedImageDrawable) : ServiceImg()
-    class InteractiveGif(override val img: AnimationFrameHolder) : ServiceImg()
+    class Empty(override val img: Drawable = Color.TRANSPARENT.toDrawable()) : ParallaxImg()
+    class Error(override val img: Drawable = Color.RED.toDrawable()) : ParallaxImg()
+    class StaticBitmap(override val img: Bitmap) : ParallaxImg()
+    class AnimatedGif(override val img: AnimatedImageDrawable) : ParallaxImg()
+    class InteractiveGif(override val img: AnimationFrameHolder) : ParallaxImg()
 }
 
-class ServiceLayer (img: ServiceImg, imageType: ImageType, uri: String = "", velocity : Int = 1, offset: Int = 0) {
+class ParallaxLayer (img: ParallaxImg, uri: String = "", imageType: ImageType = ImageType.BITMAP, velocity : Double = 1.0, offset: Double = 0.0) {
 
-    var img: ServiceImg = ServiceImg.Empty()
+    var img: ParallaxImg = ParallaxImg.Empty()
     var imageType: ImageType = ImageType.BITMAP
     var uri: String = ""
     var velocity: Double = 0.0
@@ -38,28 +39,40 @@ class ServiceLayer (img: ServiceImg, imageType: ImageType, uri: String = "", vel
         this.offset = 1.0 * offset
     }
 
+    fun copyLayerValues(layer: ParallaxLayer) {
+        if (layer.img != this.img) { this.img = layer.img }
+        if (layer.uri != this.uri) { this.uri = layer.uri }
+        this.imageType = layer.imageType
+        this.velocity = layer.velocity
+        this.offset = layer.offset
+    }
+
     companion object {
         // builder, but if errors, return null
-        fun create(context: Context, uriString: String = "", imageType: Int, velocity : Int = 1, offset: Int = 0) : ServiceLayer? {
+        fun create(context: Context, uriString: String = "", imageType: Int=1, velocity : Double = 1.0, offset: Double = 0.0) : ParallaxLayer {
             val img = getImageFromUri(
                 context,
                 uriString.toUri(),
                 ImageType.fromInt(imageType)
-            ) ?: return null // if we can't get the image just skip it
+            ) // if we can't get the image just skip it
 
-            try {
-                return ServiceLayer(img, ImageType.fromInt(imageType), uriString, velocity, offset)
-            } catch (e: Exception) {
-                Log.d("__walpServiceLayerCreation", "Can't create a valid layer")
-                e.printStackTrace()
-            }
-            return null
+//            try {
+            return ParallaxLayer(img, uriString, ImageType.fromInt(imageType), velocity, offset)
+//            } catch (e: Exception) {
+//                Log.d("__walpServiceLayerCreation", "Can't create a valid layer")
+//                e.printStackTrace()
+//            }
+//            return null
         }
 
-        private fun getImageFromUri(context: Context, uri: Uri, imageType: ImageType) : ServiceImg? {
+        fun getImageFromUri(context: Context, uri: Uri, imageType: ImageType) : ParallaxImg {
             Log.i("__walpService", "uri: $uri")
+            if (uri.toString() == "") {
+                return ParallaxImg.Empty()
+            }
+
             var inputStream: InputStream? = null
-            var img: ServiceImg? = null
+            var img: ParallaxImg? = null
             try {
                 inputStream = context.contentResolver.openInputStream(uri)
 
@@ -67,25 +80,25 @@ class ServiceLayer (img: ServiceImg, imageType: ImageType, uri: String = "", vel
                 when (imageType) {
                     ImageType.BITMAP -> {
                         val default = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
-                        img = ServiceImg.StaticBitmap(default)
+                        img = ParallaxImg.StaticBitmap(default)
                     }
                     ImageType.CONTINUOUS_GIF -> {
                         val d = Drawable.createFromStream(inputStream, uri.toString())
                         if (d is AnimatedImageDrawable) {
-                            img = ServiceImg.AnimatedGif(d)
+                            img = ParallaxImg.AnimatedGif(d)
                         } else {
                             val default = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
-                            img = ServiceImg.StaticBitmap(default)
+                            img = ParallaxImg.StaticBitmap(default)
                         }
                     }
                     ImageType.INTERACTIVE_GIF -> {
                         val bytes = context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
                         val d = AnimationFrameHolder.create(context, bytes)
                         if (d != null) {
-                            img = ServiceImg.InteractiveGif(d)
+                            img = ParallaxImg.InteractiveGif(d)
                         } else {
                             val default = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
-                            img = ServiceImg.StaticBitmap(default)
+                            img = ParallaxImg.StaticBitmap(default)
                         }
                     }
                 }
@@ -93,8 +106,10 @@ class ServiceLayer (img: ServiceImg, imageType: ImageType, uri: String = "", vel
             } catch (e: FileNotFoundException) { e.printStackTrace()
             } finally { inputStream?.close() }
 
-            if (img == null)
+            if (img == null) {
                 Log.e("__walpService", "can't draw image")
+                img = ParallaxImg.Error()
+            }
 
             return img
         }

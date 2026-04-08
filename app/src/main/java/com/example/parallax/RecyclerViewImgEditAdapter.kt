@@ -15,22 +15,22 @@ import kotlin.properties.Delegates
 // https://dev.to/rdias002/how-to-create-an-expandable-item-in-android-recyclerview-1cja
 class ConfigOptionDataUI (
     val option: ConfigOption,
-    value: Int = 0,
-    private val onValueChanged: (ConfigOption, Int) -> Unit,
+    value: Double = 0.0,
+    private val onValueChanged: (ConfigOption, Double) -> Unit,
     private val recyclerAdapter: RecyclerViewImgEditAdapter
 ) {
     var position = -1
 
     // this is the fancy schmancy hi-tech wiring between the UI value and the data value!!
     // mainActivity value is changed by the change in seekbar value
-    var value: Int by Delegates.observable(value) { _, oldValue, newValue ->
+    var value: Double by Delegates.observable(value) { _, oldValue, newValue ->
         if (oldValue != newValue) {
             onValueChanged(option, newValue)
         }
     }
 
     // to be called externally- when loading new layer
-    fun setSettingValue(amount: Int) {
+    fun setSettingValue(amount: Double) {
         val isValueChanged = value != amount
         value = amount
 
@@ -86,7 +86,7 @@ class RecyclerViewImgEditAdapter internal constructor(
         fun bind(setting: ConfigOptionDataUI) {
             tvName.text = setting.option.title
             tvVal.text = "${setting.value}"
-            sb.progress = setting.value
+            sb.progress = setting.value.toInt()
 
             val isExpanded = expandedItems.contains(setting)
             if (isExpanded) {
@@ -116,7 +116,7 @@ class RecyclerViewImgEditAdapter internal constructor(
                 override fun onStartTrackingTouch(p0: SeekBar) {}
 
                 override fun onStopTrackingTouch(p0: SeekBar) {
-                    setting.value = p0.progress
+                    setting.value = p0.progress.toDouble()
                 }
 
             })

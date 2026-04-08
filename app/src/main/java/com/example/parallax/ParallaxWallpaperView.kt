@@ -39,7 +39,7 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
     }
 
     private val paint = Paint()
-    private var layers: MutableMap<Int, ServiceLayer> = mutableMapOf()
+    private var layers: MutableMap<Int, ParallaxLayer> = mutableMapOf()
     private var offset: Int = 0
 
     private var maxScroll: Int = 3000
@@ -52,7 +52,8 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
         overScrollMode = OVER_SCROLL_NEVER
     }
 
-    fun setLayers(layers: MutableMap<Int, ServiceLayer>) {
+    // only to be used when loading all layers from data
+    fun setLayers(layers: MutableMap<Int, ParallaxLayer>) {
         this.layers.clear()
         this.layers = layers
         draw()
@@ -63,12 +64,21 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
         draw()
     }
 
-    fun setLayer(level: Int, layer: ServiceLayer) {
+    fun setLayer(level: Int, layer: ParallaxLayer) {
         layers[level] = layer
         draw()
     }
 
-    fun getLayer(level: Int) : ServiceLayer? {
+    // only use this if you know the layer already exists
+    fun setLayerValues(level: Int, layer: ParallaxLayer) {
+        if (layers[level] != null) {
+            layers[level]!!.copyLayerValues(layer)
+        }
+
+        draw()
+    }
+
+    fun getLayer(level: Int) : ParallaxLayer? {
         return layers[level]
     }
 
@@ -88,7 +98,7 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
                         (offset * (layer.velocity / 5.0) - layer.offset).toInt() // canvas width is the multiplier
 
                     when (layer.img) {
-                        is ServiceImg.AnimatedGif -> {
+                        is ParallaxImg.AnimatedGif -> {
                             val layerImg = (layer.img.img as AnimatedImageDrawable)
                             layerImg.setBounds(
                                 pos,
@@ -98,7 +108,7 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
                             )
                             layerImg.draw(canvas)
                         }
-                        is ServiceImg.InteractiveGif -> {
+                        is ParallaxImg.InteractiveGif -> {
                             val layerImg = (layer.img.img as AnimationFrameHolder)
                             val bm = layerImg.getNextFrame()
                             val destRect = Rect(0, 0, canvas.width, canvas.height)
@@ -110,7 +120,7 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
                             )
                             canvas.drawBitmap(bm, srcRect, destRect, paint)
                         }
-                        is ServiceImg.StaticBitmap -> {
+                        is ParallaxImg.StaticBitmap -> {
                             val bm = (layer.img.img as Bitmap)
                             val destRect = Rect(0, 0, canvas.width, canvas.height)
                             val srcRect = Rect(
@@ -122,7 +132,8 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
                             canvas.drawBitmap(bm, srcRect, destRect, paint)
 
                         }
-                        is ServiceImg.Empty -> {} // well, we don't care
+                        is ParallaxImg.Empty -> {} // well, we don't care
+                        is ParallaxImg.Error -> {}
                     }
                 }
             }

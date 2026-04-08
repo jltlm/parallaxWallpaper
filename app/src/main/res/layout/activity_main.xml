@@ -31,24 +31,21 @@
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:layout_marginStart="16dp"
-            android:contentDescription="@string/select_layer_top"
-            app:srcCompat="@drawable/empty_iv" />
+            android:contentDescription="@string/select_layer_top" />
 
         <ImageButton
             android:id="@+id/ivSmallMid"
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:layout_marginStart="16dp"
-            android:contentDescription="@string/select_layer_mid"
-            app:srcCompat="@drawable/empty_iv"  />
+            android:contentDescription="@string/select_layer_mid"  />
 
         <ImageButton
             android:id="@+id/ivSmallBot"
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:layout_marginStart="16dp"
-            android:contentDescription="@string/select_layer_bot"
-            app:srcCompat="@drawable/empty_iv" />
+            android:contentDescription="@string/select_layer_bot" />
 
     </LinearLayout>
 
@@ -89,6 +86,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:orientation="vertical"
+        android:visibility="invisible"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/llLayerImage">
 
@@ -96,10 +94,8 @@
             android:id="@+id/rgImageTypeSelector"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:checkedButton="@id/rbStatic"
-            android:visibility="invisible"
-            >
+            android:orientation="horizontal" >
 
             <RadioButton
                 android:id="@+id/rbStatic"
@@ -125,7 +121,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@color/black_transparent_50"
-            android:visibility="invisible"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/llLayerImage" />
 
@@ -134,15 +129,15 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintBottom_toBottomOf="parent">
 
         <Button
             android:id="@+id/btnClearAllLayers"
             android:layout_width="wrap_content"
             android:layout_height="51dp"
-            android:text="CAL"
+            android:text="clear all layers"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -152,7 +147,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="16dp"
-            android:text="OK"
+            android:text="set background"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
