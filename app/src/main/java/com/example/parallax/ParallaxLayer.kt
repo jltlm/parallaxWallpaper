@@ -35,7 +35,7 @@ class ParallaxLayer (img: ParallaxImg, uri: String = "", imageType: ImageType = 
         this.img = img
         this.uri = uri
         this.imageType = imageType
-        this.velocity = 1.0 * velocity / 10
+        this.velocity = 1.0 * velocity
         this.offset = 1.0 * offset
     }
 

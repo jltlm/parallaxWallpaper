@@ -85,7 +85,7 @@ class RecyclerViewImgEditAdapter internal constructor(
 
         fun bind(setting: ConfigOptionDataUI) {
             tvName.text = setting.option.title
-            tvVal.text = "${setting.value}"
+            tvVal.text = "${setting.value.toInt()}"
             sb.progress = setting.value.toInt()
 
             val isExpanded = expandedItems.contains(setting)

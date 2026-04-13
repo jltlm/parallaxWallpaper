@@ -111,15 +111,15 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
                 for (i in 0..2) {
                     val layer = layers[i] ?: continue
                     val pos =
-                        (offset * (layer.velocity / 5.0) - layer.offset).toInt() // canvas width is the multiplier
+                        (offset * (layer.velocity / 50.0) - layer.offset).toInt() // canvas width is the multiplier
 
                     when (layer.img) {
                         is ParallaxImg.AnimatedGif -> {
                             val layerImg = (layer.img.img as AnimatedImageDrawable)
                             layerImg.setBounds(
-                                pos,
+                                -pos,
                                 0,
-                                pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(),
+                                -pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(),
                                 canvas.height
                             )
                             layerImg.draw(canvas)

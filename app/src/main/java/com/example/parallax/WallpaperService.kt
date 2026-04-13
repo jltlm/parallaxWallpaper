@@ -93,12 +93,12 @@ class WallpaperService : WallpaperService() {
 
                     for (i in 0 until layers.size) {
                         val layer = layers[i]
-                        val pos = ((offset * canvas.width) * (layer.velocity / 5.0) - layer.offset).toInt() // canvas width is the multiplier
+                        val pos = ((offset * canvas.width) * (layer.velocity / 50.0) - layer.offset).toInt() // canvas width is the multiplier
 
                         when (layer.img) {
                             is ParallaxImg.AnimatedGif -> {
                                 val layerImg = (layer.img.img as AnimatedImageDrawable)
-                                layerImg.setBounds(pos, 0, pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(), canvas.height)
+                                layerImg.setBounds(-pos, 0, -pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(), canvas.height)
                                 layerImg.draw(canvas)
                             }
 
