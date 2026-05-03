@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -185,6 +186,24 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
             val lm = layerManagers[index] ?: continue
             try {
                 iv.setOnClickListener {
+                    // toggle border for prev selected layer
+                    if (pickedLayer == index) {
+//                        iv.isSelected = !iv.isSelected
+                        if (iv.foreground == null) {
+                            iv.foreground = ContextCompat.getDrawable(this, R.drawable.selected_layer_border)
+                        } else {
+                            iv.foreground = null
+                        }
+                    } else {
+                        if (0 <= pickedLayer && pickedLayer < binding.layoutIvSmall.childCount) {
+//                        prevSelectedIv.isSelected = false
+                            val prevSelectedIv = binding.layoutIvSmall[binding.layoutIvSmall.childCount - 1 - pickedLayer]
+                            prevSelectedIv.foreground = null
+                        }
+//                        iv.isSelected = true
+                        iv.foreground = ContextCompat.getDrawable(this, R.drawable.selected_layer_border)
+                    }
+
                     // toggle logic
                     if (pickedLayer == index) { // if clicking the same layer as selected, toggle
                         binding.llLayerImage.visibility = if (binding.llLayerImage.isVisible) View.INVISIBLE else View.VISIBLE
@@ -202,9 +221,6 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
                     pickedLayer = index
 
                     Log.i("__walpMain", "picked layer $pickedLayer")
-//                    binding.tvSpeedValue.text = "${lm.layer.velocity}"
-//                    binding.sbSpeed.progress = lm.layer.velocity
-//                    binding.sbOffset.progress = lm.layer.offset
 
                     // load values into settings UI
                     settingVelocity.setSettingValue(lm.layer.velocity)
