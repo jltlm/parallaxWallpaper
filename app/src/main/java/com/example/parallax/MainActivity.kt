@@ -225,6 +225,17 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
                     // load values into settings UI
                     settingVelocity.setSettingValue(lm.layer.velocity)
                     settingXOffset.setSettingValue(lm.layer.offset)
+                    when (lm.layer.imageType) {
+                        ImageType.BITMAP -> {
+                            binding.rbStatic.isChecked = true
+                        }
+                        ImageType.INTERACTIVE_GIF -> {
+                            binding.rbIntGif.isChecked = true
+                        }
+                        ImageType.CONTINUOUS_GIF -> {
+                            binding.rbGif.isChecked = true
+                        }
+                    }
 
                     // add the other ones in later
                 }
@@ -253,7 +264,9 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
                     else -> ImageType.BITMAP
                 }
 
-                lm.setImageType(toImageType, ParallaxLayer.getImageFromUri(applicationContext, lm.layer.uri.toUri(), toImageType))
+                if (lm.layer.imageType != toImageType) {
+                    lm.setImageType(toImageType, ParallaxLayer.getImageFromUri(applicationContext, lm.layer.uri.toUri(), toImageType))
+                }
 
                 // update UI sample parallax wallpaper
                 binding.ivCanvas.setLayerValues(lm.level, lm.layer)
