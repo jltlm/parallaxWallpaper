@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
+import android.graphics.drawable.AnimatedImageDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -20,6 +21,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.WindowCompat
 import androidx.core.view.get
 import androidx.datastore.core.DataStore
@@ -51,9 +53,11 @@ class LayerManager(
         return this.layer.img == ParallaxImg.Empty() || this.layer.uri == ""
     }
 
-    fun setUriServiceImg (uri: Uri, img: ParallaxImg) {
+    fun setUriServiceImg (uri: Uri, img: ParallaxImg?) {
         this.layer.uri = uri.toString()
-        this.layer.img = img
+        if (img != null) {
+            this.layer.img = img
+        }
     }
 
     fun setImageType (imageType: ImageType, img: ParallaxImg) {
@@ -80,7 +84,11 @@ class LayerManager(
                 imageViewSmall.setImageBitmap(null)
             }
             else -> { // AnimatedGif, InteractiveGif, StaticBitmap, Error. less movement for more energy saving!
-                val img = (this.layer.img.img as Bitmap)
+                val img = when (this.layer.imageType) {
+                    ImageType.BITMAP -> (this.layer.img.img as Bitmap)
+                    ImageType.CONTINUOUS_GIF -> (this.layer.img.img as AnimatedImageDrawable).toBitmap()
+                    ImageType.INTERACTIVE_GIF -> (this.layer.img.img as AnimationFrameHolder).getNextFrame()
+                }
                 imageViewSmall.setImageBitmap(img)
             }
         }
@@ -358,7 +366,9 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
                     lm?.loadLayer(layer)
 
                     layers[layerDO.level] = layer
-                    lm?.setUriServiceImg(uri, ParallaxLayer.getImageFromUri(applicationContext, uri, ImageType.BITMAP))
+                    lm?.setUriServiceImg(uri, null)
+                    lm?.setImageType(layer.imageType, ParallaxLayer.getImageFromUri(applicationContext, uri, layer.imageType))
+
                     lm?.updateUIElementImages()
                 }
                 binding.ivCanvas.setLayers(layers)
