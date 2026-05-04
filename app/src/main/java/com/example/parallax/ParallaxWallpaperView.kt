@@ -14,7 +14,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import android.view.View
+import android.widget.SeekBar
 
 class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView(context, attrs), SurfaceHolder.Callback {
     private val gestureListener = object : GestureDetector.SimpleOnGestureListener() {
@@ -43,7 +43,8 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
     private var layers: MutableMap<Int, ParallaxLayer> = mutableMapOf()
     private var offset: Int = 0
 
-    private var maxScroll: Int = 3000
+    private var maxBackgroundWidthPx: Int = 3000
+    private var seekbar: SeekBar? = null
 
     init {
         holder.addCallback(this)
@@ -65,6 +66,10 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
         draw()
     }
 
+    fun setMaxBackgroundWidthPx(max: Int) {
+        maxBackgroundWidthPx = max
+    }
+
     fun setLayer(level: Int, layer: ParallaxLayer) {
         layers[level] = layer
         if (layer.img.img is ParallaxImg.AnimatedGif) {
@@ -80,6 +85,10 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
             layers[level]!!.copyLayerValues(layer)
         }
 
+        if (layers[level] == null) {
+            Log.i("__walpUIView", "layer $level is missing")
+            return
+        }
         val layerImg = layers[level]!!.img
         if (layerImg.img is AnimatedImageDrawable) {
             (layerImg.img as AnimatedImageDrawable).start()
@@ -99,7 +108,11 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
         return layers[level]
     }
 
-    fun draw(offset: Int = 0) {
+    fun setScrollbar(seekbar: SeekBar) {
+        this.seekbar = seekbar
+    }
+
+    fun draw(offset: Float = 0f) {
         var canvas: Canvas? = null
         try {
             canvas = holder.lockHardwareCanvas()
@@ -111,46 +124,33 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
                 // hard-coded - 3 LAYERS ONLY
                 for (i in 0..2) {
                     val layer = layers[i] ?: continue
-                    val pos =
-                        (offset * (layer.velocity / 50.0) - layer.offset).toInt() // canvas width is the multiplier
+                    val pos = ((offset * canvas.width) * (layer.velocity / 50.0) - layer.offset).toInt() // canvas width is the multiplier
 
                     when (layer.img) {
                         is ParallaxImg.AnimatedGif -> {
                             val layerImg = (layer.img.img as AnimatedImageDrawable)
-                            layerImg.setBounds(
-                                -pos,
-                                0,
-                                -pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(),
-                                canvas.height
-                            )
+                            layerImg.setBounds(-pos, 0, -pos + (1.0 * canvas.height / layerImg.minimumHeight * layerImg.minimumWidth).toInt(), canvas.height)
                             layerImg.draw(canvas)
                         }
+
                         is ParallaxImg.InteractiveGif -> {
                             val layerImg = (layer.img.img as AnimationFrameHolder)
                             val bm = layerImg.getNextFrame()
                             val destRect = Rect(0, 0, canvas.width, canvas.height)
-                            val srcRect = Rect(
-                                pos * bm.height / canvas.height,
-                                0,
-                                pos * bm.height / canvas.height + (bm.height * canvasRatio).toInt(),
-                                bm.height
-                            )
+                            val srcRect = Rect(pos * bm.height / canvas.height, 0, pos * bm.height / canvas.height + (bm.height * canvasRatio).toInt(), bm.height)
                             canvas.drawBitmap(bm, srcRect, destRect, paint)
                         }
+
                         is ParallaxImg.StaticBitmap -> {
                             val bm = (layer.img.img as Bitmap)
                             val destRect = Rect(0, 0, canvas.width, canvas.height)
-                            val srcRect = Rect(
-                                pos * bm.height / canvas.height,
-                                0,
-                                pos * bm.height / canvas.height + (bm.height * canvasRatio).toInt(),
-                                bm.height
-                            )
+                            val srcRect = Rect(pos * bm.height / canvas.height, 0, pos * bm.height / canvas.height + (bm.height * canvasRatio).toInt(), bm.height)
                             canvas.drawBitmap(bm, srcRect, destRect, paint)
 
                         }
+
                         is ParallaxImg.Empty -> {} // well, we don't care
-                        is ParallaxImg.Error -> {}
+                        is ParallaxImg.Error -> {} // and bad images would also be invisible
                     }
                 }
             }
@@ -213,14 +213,19 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
     // works mostly like onScrollChanged
     private fun boo(x: Int) {
     // because scrollTo is locked to 0, x acts as dist traveled and not absolute scroll dist
-        val offsetTemp = offset + x * 3 // x2 is magic number
+        val offsetTemp = offset + x * 2 // x2 is magic number
 
-        val offsetDraw = if (offsetTemp > maxScroll * 3) { maxScroll * 3 }
+        val offsetDraw = if (offsetTemp > maxBackgroundWidthPx) { maxBackgroundWidthPx }
         else if (offsetTemp < 0) { 0 }
         else { offsetTemp }
 
-        draw(offsetDraw)
+        draw(offsetDraw * 1.0f / maxBackgroundWidthPx)
         offset = offsetDraw
+
+        val sb = seekbar
+        if (sb != null) {
+            sb.progress = ((offset * 1.0) / maxBackgroundWidthPx * sb.max).toInt()
+        }
 //        Log.i("__walpMainView", "SCROLL CHANGED, $offset")
     }
 

@@ -113,8 +113,7 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
     private val layerManagers : MutableMap<Int, LayerManager> = mutableMapOf()
     private var pageNum = 3
 //    private val maxSpeed = 50
-    private val screenWidth = Resources.getSystem().displayMetrics.widthPixels
-    private var maxBackgroundWidthPx = screenWidth * 3
+    private var maxBackgroundWidthPx = 4800
     private lateinit var settingRecyclerViewAdapter: RecyclerViewImgEditAdapter
 
     // data to populate the RecyclerView and Data with
@@ -131,6 +130,9 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
         Log.i("__walpMain", "Parallax Wallpaper activity onCreate")
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        maxBackgroundWidthPx = WallpaperManager.getInstance(this).desiredMinimumWidth
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -140,7 +142,6 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
         layerManagers[2] = LayerManager(2, ParallaxLayer.create(applicationContext), binding.ivSmallTop)
 
         loadAll()
-
         // ============== setting setup ============
         // set up the RecyclerView for settings
         val recyclerView: RecyclerView = findViewById(R.id.rvEditOptions)
@@ -285,6 +286,9 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
 
         }
 
+        binding.ivCanvas.setScrollbar(binding.sbPage)
+        binding.ivCanvas.setMaxBackgroundWidthPx(maxBackgroundWidthPx)
+
         binding.btnDeleteImage.setOnClickListener {
             val lm = layerManagers[pickedLayer] ?: return@setOnClickListener
             lm.clearLayer()
@@ -331,7 +335,7 @@ class MainActivity : AppCompatActivity(), RecyclerViewImgEditAdapter.ItemClickLi
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    binding.ivCanvas.draw(progress * maxBackgroundWidthPx / pageNum)
+                    binding.ivCanvas.draw(progress * 1.0f / pageNum)
                 }
             }
         })
