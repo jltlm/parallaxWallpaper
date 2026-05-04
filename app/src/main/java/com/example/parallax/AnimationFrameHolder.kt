@@ -9,37 +9,23 @@ import com.bumptech.glide.gifdecoder.StandardGifDecoder
 import com.bumptech.glide.load.resource.gif.GifBitmapProvider
 
 class AnimationFrameHolder(context: Context, bytes: ByteArray, speed : Int = 20) {
-    private val frames = mutableListOf<Bitmap>()
-    private var frameIndex = 0
-    private val delays = mutableListOf<Int>()
-    private var delayIndex = 0
-    private var delaySpeed = 1
+    private var decoder: StandardGifDecoder
+    private var delaySpeed = speed
+    private var delayRemaining = 0
 
     init {
-        val parser = GifHeaderParser()
-        parser.setData(bytes)
-
+        val parser = GifHeaderParser().apply { setData(bytes) }
         val header = parser.parseHeader()
-        if (header.numFrames <= 0) { throw IllegalArgumentException("Not a valid GIF") }
 
-        val decoder = StandardGifDecoder(GifBitmapProvider(Glide.get(context).bitmapPool))
-        decoder.setData(header, bytes)
+        require(header.numFrames > 0) { "Not a valid GIF" }
+//        if (header.numFrames <= 0) { throw IllegalArgumentException("Not a valid GIF") }
 
-        try {
-            for (i in 0 until header.numFrames) {
-                decoder.advance()              // move to next frame
-                val frame = decoder.nextFrame  // composited bitmap
-                if (frame != null) {
-                    frames.add(frame.copy(Bitmap.Config.HARDWARE, false))
-                    delays.add(decoder.nextDelay)
-                }
+        decoder = StandardGifDecoder(GifBitmapProvider(Glide.get(context).bitmapPool))
+            .apply {
+                setData(header, bytes)
+                advance()
+                delayRemaining = nextDelay / delaySpeed
             }
-        } catch (e: Exception) {
-            Log.e("__walpService", "getting frames of gif: $e")
-        }
-
-        delaySpeed = speed
-        delayIndex = delays[frameIndex] / delaySpeed
     }
 
     companion object {
@@ -58,12 +44,15 @@ class AnimationFrameHolder(context: Context, bytes: ByteArray, speed : Int = 20)
     /**
      * Includes delay for timing
      */
-    fun getNextFrame() : Bitmap {
-        if (delayIndex <= 0) {
-            frameIndex = (frameIndex + 1) % frames.size
-            delayIndex = delays[frameIndex] / delaySpeed
+    fun getNextFrame(): Bitmap {
+        if (delayRemaining <= 0) {
+            decoder.advance()
+            delayRemaining = decoder.nextDelay / delaySpeed
         }
-        delayIndex -= 1
-        return frames[frameIndex]
+        delayRemaining--
+
+        return decoder.nextFrame
+            ?: throw IllegalStateException("Decoder returned null frame")
     }
+
 }

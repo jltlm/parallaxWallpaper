@@ -173,6 +173,13 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
 
         holder.isCreating
 
+        for (layer in layers) {
+            when (layer.value.imageType) {
+                ImageType.BITMAP -> continue
+                ImageType.CONTINUOUS_GIF -> (layer.value.img.img as AnimatedImageDrawable).start()
+                ImageType.INTERACTIVE_GIF -> continue
+            }
+        }
         draw()
     }
 
@@ -186,7 +193,14 @@ class ParallaxWallpaperView(context: Context, attrs: AttributeSet) : SurfaceView
     }
 
     override fun surfaceDestroyed(p0: SurfaceHolder) {
-        return//        TODO("Not yet implemented")
+        for (layer in layers) {
+            when (layer.value.imageType) {
+                ImageType.BITMAP -> continue
+                ImageType.CONTINUOUS_GIF -> (layer.value.img.img as AnimatedImageDrawable).stop()
+                ImageType.INTERACTIVE_GIF -> continue
+            }
+        }
+        return
     }
 
     // https://android.googlesource.com/platform/frameworks/base/+/4662611/core/java/android/view/View.java
